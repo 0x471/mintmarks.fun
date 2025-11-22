@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { useWalletStatus } from '@/hooks/useWalletStatus'
+import { useSignInWithEmail, useVerifyEmailOTP } from '@coinbase/cdp-hooks'
 import { searchLumaEmails, getEmailRaw, type EmailSearchResult } from '@/services/gmail'
 import type { GmailMessageDetail } from '@/types/gmail'
 import { validateProof } from '@/services/proofValidation'
 import { generateNFTImage } from '@/services/nftImageGeneration'
 import type { NFTMetadata } from '@/services/nftMinting'
 import { useToast } from '@/components/useToast'
+import { handleWalletError } from '@/utils/walletErrors'
 import { type MintStep } from '@/components/ProgressIndicator'
 import { UnifiedMintProgress, type UnifiedMintStep } from '@/components/UnifiedMintProgress'
-import { connectWallet } from '@/services/wallet'
 import VerticalBarsNoise from '@/components/VerticalBarsNoise'
 import EmailCard from '@/components/EmailCard'
 import { POAPBadge } from '@/components/POAPBadge'
@@ -25,8 +27,21 @@ type Mode = 'file' | 'gmail'
 export default function CreateMark() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { accessToken, isAuthenticated, handleTokenExpiration } = useAuth()
+  const { accessToken, isAuthenticated, handleTokenExpiration, userEmail } = useAuth()
   const { showToast } = useToast()
+  
+  // CDP Wallet hooks
+  const walletStatus = useWalletStatus()
+  const { signInWithEmail } = useSignInWithEmail()
+  const { verifyEmailOTP } = useVerifyEmailOTP()
+  
+  // Email OTP state
+  const [otpEmail, setOtpEmail] = useState<string>('')
+  const [otpCode, setOtpCode] = useState<string>('')
+  const [flowId, setFlowId] = useState<string | null>(null)
+  const [showOtpInput, setShowOtpInput] = useState(false)
+  const [isSendingOtp, setIsSendingOtp] = useState(false)
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
   const [mode, setMode] = useState<Mode>('gmail')
   const [emailFile, setEmailFile] = useState<File | null>(null)
   const [proof, setProof] = useState<any>(null)
@@ -566,8 +581,16 @@ export default function CreateMark() {
         throw new Error(validation.error || 'Proof validation failed')
       }
 
-      // Phase 2: Wallet Connection - requires user action
-      setUnifiedStep('wallet-prompt')
+      // Phase 2: Wallet Connection - check wallet status
+      // Check if wallet already exists
+      if (walletStatus.hasWallet && walletStatus.evmAddress) {
+        // Wallet already connected, skip to signing
+        setWalletAddress(walletStatus.evmAddress)
+        setUnifiedStep('wallet-sign-prompt')
+      } else {
+        // No wallet, prompt user to create/connect
+        setUnifiedStep('wallet-prompt')
+      }
       
     } catch (err: unknown) {
       const error = err as Error & { name?: string }
@@ -585,27 +608,92 @@ export default function CreateMark() {
     }
   }
 
-  // Handle wallet connection
+  // Handle wallet connection using CDP Embedded Wallet
   const handleConnectWallet = async () => {
     try {
-      setUnifiedStep('wallet-connecting')
+      setError(null)
       
-      const result = await connectWallet()
-      setWalletAddress(result.address)
+      // Use Google login email if available, otherwise use user input
+      const emailToUse = userEmail || otpEmail
       
-      setUnifiedStep('wallet-connected')
-      await new Promise(resolve => setTimeout(resolve, 500))
+      if (!emailToUse) {
+        // If no email available, show email input
+        setShowOtpInput(true)
+        setUnifiedStep('wallet-prompt')
+        return
+      }
       
-      // Auto advance to sign prompt
-      setUnifiedStep('wallet-sign-prompt')
+      // If OTP input is showing and we have OTP code, verify OTP
+      if (showOtpInput && otpCode && flowId) {
+        setIsVerifyingOtp(true)
+        setUnifiedStep('wallet-connecting')
+        
+        try {
+          const { user } = await verifyEmailOTP({ flowId, otp: otpCode })
+          
+          // Get wallet address from user
+          if (user.evmAccounts && user.evmAccounts.length > 0) {
+            const address = user.evmAccounts[0]
+            setWalletAddress(address)
+            setUnifiedStep('wallet-connected')
+            setShowOtpInput(false)
+            setOtpCode('')
+            setFlowId(null)
+            await new Promise(resolve => setTimeout(resolve, 500))
+            setUnifiedStep('wallet-sign-prompt')
+          } else {
+            throw new Error('Wallet creation failed. No address returned.')
+          }
+        } catch (err: unknown) {
+          console.error('Failed to verify OTP:', err)
+          setError(handleWalletError(err))
+          setOtpCode('')
+          setUnifiedStep('wallet-prompt')
+        } finally {
+          setIsVerifyingOtp(false)
+        }
+      } else {
+        // Start email sign-in flow
+        setIsSendingOtp(true)
+        setUnifiedStep('wallet-connecting')
+        
+        try {
+          const result = await signInWithEmail({ email: emailToUse })
+          
+          // Store flowId and show OTP input
+          setFlowId(result.flowId)
+          setOtpEmail(emailToUse)
+          setShowOtpInput(true)
+          setUnifiedStep('wallet-prompt')
+          
+        } catch (err: unknown) {
+          console.error('Failed to send OTP:', err)
+          setError(handleWalletError(err))
+          setUnifiedStep('wallet-prompt')
+        } finally {
+          setIsSendingOtp(false)
+        }
+      }
       
     } catch (err: unknown) {
-      const error = err as Error
-      console.error('Failed to connect wallet:', error)
-      setError(error.message || 'Failed to connect wallet')
+      console.error('Failed to connect wallet:', err)
+      setError(handleWalletError(err))
       setUnifiedStep('wallet-prompt')
     }
   }
+  
+  // Monitor wallet status changes
+  useEffect(() => {
+    if (walletStatus.evmAddress && !walletAddress && isUnifiedFlow) {
+      setWalletAddress(walletStatus.evmAddress)
+      if (unifiedStep === 'wallet-connecting' || unifiedStep === 'wallet-prompt') {
+        setUnifiedStep('wallet-connected')
+        setTimeout(() => {
+          setUnifiedStep('wallet-sign-prompt')
+        }, 500)
+      }
+    }
+  }, [walletStatus.evmAddress, walletAddress, isUnifiedFlow, unifiedStep])
 
   const handleShareOnX = () => {
     const text = encodeURIComponent('I just minted my Mintmark on Base! #onchain #Base');
@@ -1182,10 +1270,21 @@ export default function CreateMark() {
                                   onChangeWallet={() => {
                                     // Reset wallet state to allow user to connect different wallet
                                     setWalletAddress(null)
+                                    setShowOtpInput(false)
+                                    setOtpEmail('')
+                                    setOtpCode('')
+                                    setFlowId(null)
                                     setUnifiedStep('wallet-prompt')
                                   }}
                                   walletAddress={walletAddress || undefined}
                                   error={error}
+                                  showOtpInput={showOtpInput}
+                                  otpEmail={otpEmail || userEmail || ''}
+                                  otpCode={otpCode}
+                                  onOtpEmailChange={(email) => setOtpEmail(email)}
+                                  onOtpCodeChange={(code) => setOtpCode(code)}
+                                  isSendingOtp={isSendingOtp}
+                                  isVerifyingOtp={isVerifyingOtp}
                                 />
 
                                 {/* Security footer */}

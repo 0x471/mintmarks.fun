@@ -1,6 +1,7 @@
 import { Button } from './ui/button';
 import { Alert, AlertDescription } from './ui/alert';
-import { AlertCircle, Wallet, FileSignature, ArrowRight, Shield, Lock, Loader2, CheckCircle2 } from 'lucide-react';
+import { Input } from './ui/input';
+import { AlertCircle, Wallet, FileSignature, ArrowRight, Shield, Lock, Loader2, CheckCircle2, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type UnifiedMintStep = 
@@ -32,6 +33,14 @@ interface UnifiedMintProgressProps {
   onChangeWallet?: () => void;
   walletAddress?: string;
   error?: string | null;
+  // OTP flow props
+  showOtpInput?: boolean;
+  otpEmail?: string;
+  otpCode?: string;
+  onOtpEmailChange?: (email: string) => void;
+  onOtpCodeChange?: (code: string) => void;
+  isSendingOtp?: boolean;
+  isVerifyingOtp?: boolean;
 }
 
 const stepConfig: Record<UnifiedMintStep, { label: string; description?: string; phase: 'proof' | 'wallet' | 'mint' }> = {
@@ -64,6 +73,13 @@ export function UnifiedMintProgress({
   onChangeWallet,
   walletAddress,
   error,
+  showOtpInput = false,
+  otpEmail = '',
+  otpCode = '',
+  onOtpEmailChange,
+  onOtpCodeChange,
+  isSendingOtp = false,
+  isVerifyingOtp = false,
 }: UnifiedMintProgressProps) {
   const config = stepConfig[currentStep];
   const isWalletPhase = config.phase === 'wallet';
@@ -119,13 +135,76 @@ export function UnifiedMintProgress({
         </Alert>
       )}
 
+      {/* OTP Input Section */}
+      {showOtpInput && currentStep === 'wallet-prompt' && (
+        <div className="space-y-3 pt-2">
+          {!otpCode && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-[var(--page-text-primary)]">
+                Email Address
+              </label>
+              <Input
+                type="email"
+                value={otpEmail}
+                onChange={(e) => onOtpEmailChange?.(e.target.value)}
+                placeholder="your@email.com"
+                disabled={isSendingOtp}
+                className="w-full"
+              />
+            </div>
+          )}
+          {otpEmail && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-[var(--page-text-primary)]">
+                Enter OTP Code
+              </label>
+              <Input
+                type="text"
+                value={otpCode}
+                onChange={(e) => onOtpCodeChange?.(e.target.value)}
+                placeholder="123456"
+                disabled={isVerifyingOtp}
+                maxLength={6}
+                className="w-full text-center text-lg tracking-widest"
+              />
+              <p className="text-xs text-[var(--page-text-secondary)]">
+                Check your email ({otpEmail}) for the verification code
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Action Buttons */}
       {isPrompt && (
         <div className="flex gap-3 pt-2">
           {currentStep === 'wallet-prompt' && (
-            <Button onClick={onConnectWallet} className="flex-1">
-              <Wallet className="mr-2 h-4 w-4" />
-              Connect Wallet
+            <Button 
+              onClick={onConnectWallet} 
+              className="flex-1"
+              disabled={isSendingOtp || isVerifyingOtp || (showOtpInput && !otpEmail)}
+            >
+              {isSendingOtp ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending OTP...
+                </>
+              ) : isVerifyingOtp ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Verifying...
+                </>
+              ) : showOtpInput && otpCode ? (
+                <>
+                  <Mail className="mr-2 h-4 w-4" />
+                  Verify OTP
+                </>
+              ) : (
+                <>
+                  <Wallet className="mr-2 h-4 w-4" />
+                  {showOtpInput ? 'Send OTP' : 'Connect Wallet'}
+                </>
+              )}
             </Button>
           )}
           {currentStep === 'wallet-sign-prompt' && (
