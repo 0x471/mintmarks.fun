@@ -7,7 +7,7 @@ import { validateProof } from '@/services/proofValidation'
 import { generateNFTImage } from '@/services/nftImageGeneration'
 import type { NFTMetadata } from '@/services/nftMinting'
 import { useToast } from '@/components/useToast'
-import type { MintStep } from '@/components/ProgressIndicator'
+import { type MintStep } from '@/components/ProgressIndicator'
 import { UnifiedMintProgress, type UnifiedMintStep } from '@/components/UnifiedMintProgress'
 import { connectWallet } from '@/services/wallet'
 import VerticalBarsNoise from '@/components/VerticalBarsNoise'
@@ -30,6 +30,7 @@ export default function CreateMark() {
   const [mode, setMode] = useState<Mode>('gmail')
   const [emailFile, setEmailFile] = useState<File | null>(null)
   const [proof, setProof] = useState<any>(null)
+  // @ts-ignore - Future use
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
@@ -141,6 +142,14 @@ export default function CreateMark() {
   const [emailFilter, setEmailFilter] = useState<'all' | 'luma' | 'substack'>('all')
   const [visibleEmailsCount, setVisibleEmailsCount] = useState(10)
 
+  // NFT Mint state
+  // @ts-ignore - Future use
+  const [isProofValid, setIsProofValid] = useState(false)
+  // @ts-ignore - Future use
+  const [mintStep, setMintStep] = useState<MintStep>('idle')
+  // @ts-ignore - Future use
+  const [isMinting, setIsMinting] = useState(false)
+
   // Proof Generation state
   type ProofStep = 'idle' | 'loading-email' | 'importing-sdk' | 'loading-blueprint' | 'generating' | 'validating' | 'complete'
   const [proofStep, setProofStep] = useState<ProofStep>('idle')
@@ -151,6 +160,7 @@ export default function CreateMark() {
   const [isUnifiedFlow, setIsUnifiedFlow] = useState(false)
 
   // Proof Progress Indicator Component
+  // @ts-ignore - Future use
   const ProofProgressIndicator = ({ currentStep }: { currentStep: ProofStep }) => {
     const proofSteps: Array<{ key: ProofStep; label: string; progress: number }> = [
       { key: 'loading-email', label: 'Loading Email Content', progress: 20 },

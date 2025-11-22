@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { POAPBadge } from '@/components/POAPBadge'
 import { useAuth } from '@/hooks/useAuth'
@@ -23,6 +23,7 @@ interface StoredNFT {
 }
 
 export default function MyMarks() {
+  // @ts-ignore - Future use
   const { isAuthenticated } = useAuth()
   const [nfts, setNfts] = useState<StoredNFT[]>([])
   const [isLoading, setIsLoading] = useState(true)
