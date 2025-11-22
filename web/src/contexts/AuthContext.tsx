@@ -6,9 +6,16 @@ const TOKEN_STORAGE_KEY = 'mintmarks_gmail_access_token'
 const TOKEN_EXPIRE_KEY = 'mintmarks_gmail_access_token_expire'
 const TOKEN_EXPIRY_BUFFER = 5 * 60 * 1000 // 5 minutes buffer
 
+interface UserInfo {
+  email: string
+  name?: string
+}
+
 interface AuthContextType {
   accessToken: string | null
   isAuthenticated: boolean
+  userEmail: string | null
+  userInfo: UserInfo | null
   login: () => void
   logout: () => void
   handleTokenExpiration: () => void
@@ -18,6 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null)
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
 
   // Load token from localStorage on mount
   useEffect(() => {
@@ -38,6 +46,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [])
+
+  const fetchUserInfo = async () => {
+    if (!accessToken) return
+
+    try {
+      const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setUserInfo({
+          email: data.email || '',
+          name: data.name,
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch user info:', error)
+      setUserInfo(null)
+    }
+  }
+
+  // Fetch user info when authenticated
+  useEffect(() => {
+    if (accessToken && !isTokenExpired()) {
+      fetchUserInfo()
+    } else {
+      setUserInfo(null)
+    }
+  }, [accessToken])
 
 
 
@@ -88,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setAccessToken(null)
+    setUserInfo(null)
     localStorage.removeItem(TOKEN_STORAGE_KEY)
     localStorage.removeItem(TOKEN_EXPIRE_KEY)
   }
@@ -111,6 +152,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         accessToken,
         isAuthenticated,
+        userEmail: userInfo?.email || null,
+        userInfo,
         login,
         logout,
         handleTokenExpiration,

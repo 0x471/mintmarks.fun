@@ -145,6 +145,34 @@ function App() {
           </p>
         </header>
 
+        {/* Wallet Address Display - Show when user has wallet */}
+        {isAuthenticated && accessToken && walletStatus.hasWallet && walletStatus.evmAddress && (
+          <div style={{
+            marginBottom: '2rem',
+            maxWidth: '600px',
+            margin: '0 auto 2rem auto',
+            padding: '1.5rem',
+            backgroundColor: '#f0fdf4',
+            borderRadius: '8px',
+            border: '2px solid #10b981',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+              <div style={{
+                width: '20px',
+                height: '20px',
+                borderRadius: '50%',
+                backgroundColor: '#10b981',
+              }} />
+              <h3 style={{ fontWeight: '600', color: '#065f46', margin: 0 }}>
+                Wallet Connected
+              </h3>
+            </div>
+            <p style={{ fontSize: '0.875rem', color: '#047857', margin: 0 }}>
+              <strong>Address:</strong> {walletStatus.evmAddress}
+            </p>
+          </div>
+        )}
+
         {/* Wallet Creation Prompt - Show when user is logged in but has no wallet */}
         {isAuthenticated && accessToken && walletStatus.needsWallet && !walletStatus.isLoading && (
           <div style={{ marginBottom: '2rem', maxWidth: '600px', margin: '0 auto 2rem auto' }}>

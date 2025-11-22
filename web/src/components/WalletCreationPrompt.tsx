@@ -27,7 +27,7 @@ export function WalletCreationPrompt({
 }) {
   // ✅ Best Practice: SDK initialize kontrolü
   const { isInitialized } = useIsInitialized()
-  const { accessToken } = useAuth() // Gmail OAuth token
+  const { accessToken, userEmail } = useAuth() // Gmail OAuth token and email
   const { isSignedIn } = useIsSignedIn()
   const { evmAddress } = useEvmAddress()
 
@@ -35,13 +35,56 @@ export function WalletCreationPrompt({
   const { signInWithEmail } = useSignInWithEmail()
   const { verifyEmailOTP } = useVerifyEmailOTP()
 
-  const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
   const [flowId, setFlowId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [step, setStep] = useState<'email' | 'otp' | 'success'>('email')
   const [emailLoading, setEmailLoading] = useState(false)
   const [otpLoading, setOtpLoading] = useState(false)
+
+  // Auto-start wallet creation when user is logged in and email is available
+  useEffect(() => {
+    if (isInitialized && userEmail && !isSignedIn && !evmAddress && step === 'email' && !emailLoading) {
+      handleAutoStart()
+    }
+  }, [isInitialized, userEmail, isSignedIn, evmAddress, step, emailLoading])
+
+  const handleAutoStart = async () => {
+    if (!userEmail) return
+
+    const user = await getCurrentUser()
+    if (user) {
+      setError('You are already signed in. Please refresh the page.')
+      return
+    }
+
+    setError(null)
+    setEmailLoading(true)
+    try {
+      console.log('🚀 Auto-starting wallet creation flow for email:', userEmail)
+      const result = await signInWithEmail({ email: userEmail })
+      console.log('✅ OTP sent successfully, flowId:', result.flowId)
+      setFlowId(result.flowId)
+      setStep('otp')
+    } catch (err) {
+      console.error('❌ Wallet creation error:', err)
+      const errorMessage = err instanceof Error
+        ? err.message
+        : 'Failed to send verification code'
+
+      if (errorMessage.includes('already authenticated')) {
+        setError('You are already signed in. Please refresh the page.')
+      } else if (errorMessage.includes('project') || errorMessage.includes('Project ID')) {
+        setError('CDP Project ID is missing or invalid. Please check your .env file.')
+      } else if (errorMessage.includes('domain') || errorMessage.includes('CORS')) {
+        setError('Domain not authorized. Please add this domain to CDP Portal.')
+      } else {
+        setError(errorMessage)
+      }
+    } finally {
+      setEmailLoading(false)
+    }
+  }
 
   // Debug: Log SDK initialization status
   useEffect(() => {
@@ -153,132 +196,83 @@ export function WalletCreationPrompt({
             <h3 style={{ fontSize: '1.125rem', fontWeight: '600' }}>Create Your Wallet</h3>
           </div>
           
-          <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
-            To create your embedded wallet, we need to verify your email address.
-            Enter your email below and we'll send you a verification code.
-          </p>
+          {!userEmail ? (
+            <p style={{ fontSize: '0.875rem', color: '#991b1b', marginBottom: '1rem' }}>
+              Please sign in with Google to create your wallet.
+            </p>
+          ) : (
+            <>
+              <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
+                We'll send a verification code to <strong>{userEmail}</strong> to create your embedded wallet.
+              </p>
 
-          {error && (
-            <div style={{
-              padding: '0.75rem',
-              backgroundColor: '#fef2f2',
-              border: '1px solid #fecaca',
-              borderRadius: '6px',
-              marginBottom: '1rem',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '1rem' }}>⚠️</span>
-                <p style={{ fontSize: '0.875rem', color: '#991b1b' }}>{error}</p>
-              </div>
-            </div>
-          )}
-
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault()
-              
-              // ✅ Best Practice: Form validation
-              if (!email || !email.includes('@')) {
-                setError('Please enter a valid email address.')
-                return
-              }
-
-              // ✅ Best Practice: Authentication flow başlatmadan önce kontrol et
-              const user = await getCurrentUser()
-              if (user) {
-                setError('You are already signed in. Please refresh the page.')
-                return
-              }
-
-              setError(null)
-              setEmailLoading(true)
-              try {
-                console.log('🚀 Starting wallet creation flow for email:', email)
-                const result = await signInWithEmail({ email })
-                console.log('✅ OTP sent successfully, flowId:', result.flowId)
-                setFlowId(result.flowId)
-                setStep('otp')
-              } catch (err) {
-                // ✅ Best Practice: Detaylı error handling
-                console.error('❌ Wallet creation error:', err)
-                const errorMessage = err instanceof Error
-                  ? err.message
-                  : 'Failed to send verification code'
-
-                // "User is already authenticated" hatasını özel olarak handle et
-                if (errorMessage.includes('already authenticated')) {
-                  setError('You are already signed in. Please refresh the page.')
-                } else if (errorMessage.includes('project') || errorMessage.includes('Project ID')) {
-                  setError('CDP Project ID is missing or invalid. Please check your .env file.')
-                } else if (errorMessage.includes('domain') || errorMessage.includes('CORS')) {
-                  setError('Domain not authorized. Please add this domain to CDP Portal.')
-                } else {
-                  setError(errorMessage)
-                }
-              }
-            }}
-            style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
-          >
-            <div>
-              <label htmlFor="email" style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                required
-                disabled={emailLoading}
-                style={{
-                  width: '100%',
+              {error && (
+                <div style={{
                   padding: '0.75rem',
-                  border: '1px solid #d1d5db',
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
                   borderRadius: '6px',
-                  fontSize: '0.875rem',
-                }}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={emailLoading || !email}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                backgroundColor: emailLoading ? '#9ca3af' : '#3b82f6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '0.875rem',
-                fontWeight: '600',
-                cursor: emailLoading ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-              }}
-            >
+                  marginBottom: '1rem',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '1rem' }}>⚠️</span>
+                    <p style={{ fontSize: '0.875rem', color: '#991b1b' }}>{error}</p>
+                  </div>
+                </div>
+              )}
+
               {emailLoading ? (
-                <>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.75rem',
+                  padding: '1rem',
+                }}>
                   <div style={{
-                    width: '16px',
-                    height: '16px',
-                    border: '2px solid white',
+                    width: '20px',
+                    height: '20px',
+                    border: '2px solid #3b82f6',
                     borderTopColor: 'transparent',
                     borderRadius: '50%',
                     animation: 'spin 1s linear infinite',
                   }} />
-                  Sending Code...
-                </>
+                  <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                    Sending verification code to {userEmail}...
+                  </span>
+                </div>
               ) : (
-                <>
+                <button
+                  onClick={handleAutoStart}
+                  disabled={emailLoading || !userEmail}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    backgroundColor: emailLoading ? '#9ca3af' : '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    cursor: emailLoading ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!emailLoading) e.currentTarget.style.backgroundColor = '#2563eb'
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!emailLoading) e.currentTarget.style.backgroundColor = '#3b82f6'
+                  }}
+                >
                   <span>📧</span>
-                  Send Verification Code
-                </>
+                  Send Verification Code to {userEmail}
+                </button>
               )}
-            </button>
-          </form>
+            </>
+          )}
         </div>
       </div>
     )
@@ -301,7 +295,7 @@ export function WalletCreationPrompt({
           </div>
           
           <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
-            We've sent a verification code to <strong>{email}</strong>.
+            We've sent a verification code to <strong>{userEmail}</strong>.
             Please enter the code below to create your wallet.
           </p>
 
