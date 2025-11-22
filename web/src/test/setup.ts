@@ -1,13 +1,10 @@
 import '@testing-library/jest-dom'
+import { vi } from 'vitest'
 
 // Mock environment variables
-Object.defineProperty(window, 'import', {
+Object.defineProperty(import.meta, 'env', {
   value: {
-    meta: {
-      env: {
-        VITE_GOOGLE_CLIENT_ID: 'test-client-id',
-      },
-    },
+    VITE_GOOGLE_CLIENT_ID: 'test-client-id',
   },
 })
 
@@ -17,8 +14,13 @@ const localStorageMock = {
   setItem: vi.fn(),
   removeItem: vi.fn(),
   clear: vi.fn(),
+  length: 0,
+  key: vi.fn(),
 }
-global.localStorage = localStorageMock as any
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+})
 
 // Mock fetch
 global.fetch = vi.fn()
