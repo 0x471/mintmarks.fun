@@ -66,3 +66,30 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* App.tsx Refactoring Styles */
+.view-toggle {
+  margin-bottom: 2rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.toggle-btn {
+  padding: 0.5rem 1rem;
+  background-color: #e5e7eb; /* Fallback if var not defined */
+  color: #374151;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.toggle-btn.active {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.auth-prompt {
+  text-align: center;
+  padding: 2rem;
+}
