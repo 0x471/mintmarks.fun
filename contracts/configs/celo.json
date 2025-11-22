@@ -1,0 +1,15 @@
+{
+  "network": "celo-sepolia",
+  "chainId": 11142220,
+  "rpcUrl": "https://forno.celo-sepolia.celo-testnet.org",
+  "contracts": {
+    "mintmarks": "",
+    "verifier": ""
+  },
+  "fees": {
+    "collection": "0.01",
+    "minting": "0.001",
+    "total": "0.011"
+  },
+  "metadataUri": "https://mintmarks.fun/api/metadata/{id}"
+}
