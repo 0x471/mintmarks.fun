@@ -1,20 +1,8 @@
-import { emailFilterConfig, EmailSource } from '../config/emailFilters'
+import { emailFilterConfig } from '../config/emailFilters'
 import type { GmailSearchResponse, GmailMessageResponse, GmailMessageDetail } from '../types/gmail'
+import { getEmailSource } from '../lib/utils'
 
 const GMAIL_API_BASE = 'https://gmail.googleapis.com/gmail/v1/users/me'
-
-// Helper to determine the source of an email based on the 'from' address
-// TODO: Move this to a shared utility file (e.g., src/lib/utils.ts)
-const getEmailSource = (email: GmailMessageDetail): EmailSource | 'other' => {
-  const from = email.from.toLowerCase()
-  for (const source in emailFilterConfig) {
-    const config = emailFilterConfig[source as EmailSource]
-    if (config.apiQuery.domains.some(domain => from.includes(domain))) {
-      return source as EmailSource
-    }
-  }
-  return 'other'
-}
 
 export function isTokenExpiredError(status: number): boolean {
   return status === 401
