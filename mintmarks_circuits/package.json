@@ -6,12 +6,17 @@
   "scripts": {
     "compile": "nargo compile",
     "check": "nargo check",
-    "generate:verifier": "node scripts/generateVerifier.js"
+    "prepare": "node scripts/prepare.js",
+    "execute": "nargo execute witness",
+    "generate:proof": "node scripts/generateProof.js",
+    "generate:verifier": "node scripts/generateVerifier.js",
+    "full": "pnpm run prepare && pnpm run compile && pnpm run generate:proof"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@aztec/bb.js": "0.84.0"
+    "@aztec/bb.js": "0.84.0",
+    "@zk-email/zkemail-nr": "^1.3.2"
   }
 }
