@@ -5,20 +5,46 @@ import wasm from 'vite-plugin-wasm';
 import topLevelAwait from 'vite-plugin-top-level-await';
 import { copyFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
+import { execSync } from 'child_process';
 
-// Plugin to copy circuit files before build/dev
+// Plugin to auto-compile and copy circuit files
 const copyCircuitPlugin = () => {
   return {
     name: 'copy-circuit',
     buildStart() {
       const circuitSource = resolve(__dirname, '../mintmarks_circuits/target/mintmarks_circuits.json');
       const circuitDest = resolve(__dirname, 'public/circuit.json');
+      const circuitDir = resolve(__dirname, '../mintmarks_circuits');
 
+      // Auto-compile circuit if missing
+      if (!existsSync(circuitSource)) {
+        console.log('Circuit not found, auto-compiling...');
+        try {
+          // Check if mintmarks_circuits directory exists
+          if (!existsSync(circuitDir)) {
+            throw new Error('mintmarks_circuits directory not found!');
+          }
+
+          // Run circuit compilation
+          console.log('Installing circuit dependencies...');
+          execSync('pnpm install', { cwd: circuitDir, stdio: 'inherit' });
+
+          console.log('Compiling circuit...');
+          execSync('pnpm run compile', { cwd: circuitDir, stdio: 'inherit' });
+
+          console.log('Circuit compiled successfully');
+        } catch (error: any) {
+          console.error('Circuit compilation failed');
+          throw new Error(`Failed to compile circuit: ${error.message}`);
+        }
+      }
+
+      // Copy circuit to public directory
       if (existsSync(circuitSource)) {
         copyFileSync(circuitSource, circuitDest);
         console.log('Copied latest circuit to public/circuit.json');
       } else {
-        console.warn('Circuit file not found. Run: cd ../mintmarks_circuits && pnpm run compile');
+        throw new Error('Circuit file still missing after compilation!');
       }
     },
   };

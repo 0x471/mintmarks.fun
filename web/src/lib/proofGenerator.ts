@@ -36,8 +36,20 @@ async function loadCircuit() {
 
   const response = await fetch('/circuit.json');
   if (!response.ok) {
-    throw new Error('Failed to load circuit JSON. Make sure the circuit is compiled.');
+    throw new Error(
+      'Circuit not found. Please compile the circuit first.'
+    );
   }
+
+  // Verify response is JSON, not HTML (common 404 fallback)
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    throw new Error(
+      `Circuit file returned ${contentType || 'unknown type'} instead of JSON. ` +
+      'Make sure circuit is compiled and vite.config.ts copyCircuitPlugin is working.'
+    );
+  }
+
   circuitJson = await response.json();
   return circuitJson;
 }
