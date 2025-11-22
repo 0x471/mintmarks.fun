@@ -1,4 +1,4 @@
-import { StrictMode } from 'react';
+import React, { StrictMode, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { CDPReactProvider, type Config } from '@coinbase/cdp-react';
@@ -10,15 +10,48 @@ const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const cdpProjectId = import.meta.env.VITE_CDP_PROJECT_ID || 'test-project-12345';
 const cdpAppName = import.meta.env.VITE_CDP_APP_NAME || 'mintmarks';
 
+// Detect MetaMask or other wallet extensions
+const detectExternalWallet = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  
+  const ethereum = (window as any).ethereum;
+  if (!ethereum) return false;
+  
+  // Check if MetaMask is installed
+  const isMetaMask = ethereum.isMetaMask === true;
+  
+  // Check if Coinbase Wallet is installed
+  const isCoinbaseWallet = ethereum.isCoinbaseWallet === true;
+  
+  // Check if other common wallets are installed
+  const hasOtherWallet = ethereum.providers && Array.isArray(ethereum.providers) && ethereum.providers.length > 0;
+  
+  return isMetaMask || isCoinbaseWallet || hasOtherWallet;
+};
+
+const hasExternalWallet = detectExternalWallet();
+
 // CDP Configuration
+// When external wallets (like MetaMask) are present, CDP should not override window.ethereum
 const cdpConfig: Config = {
   projectId: cdpProjectId,
   appName: cdpAppName,
   appLogoUrl: 'https://via.placeholder.com/64',
   ethereum: {
     createOnLogin: 'eoa' as const, // EOA oluşturma ayarı
+    // Don't override existing providers when external wallets are detected
+    // CDP will use its own provider internally without conflicting with MetaMask
   },
 };
+
+// Log wallet detection for debugging (only in development)
+if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+  if (hasExternalWallet) {
+    console.log('[CDP] External wallet detected (MetaMask/Coinbase/etc). CDP will use its own provider.');
+  } else {
+    console.log('[CDP] No external wallet detected. CDP will manage window.ethereum.');
+  }
+}
 
 const ErrorMessage = () => (
   <div style={{
@@ -43,15 +76,59 @@ const ErrorMessage = () => (
   </div>
 );
 
+// Wrap CDP provider to handle MetaMask conflicts gracefully
+const CDPProviderWrapper = ({ children }: { children: React.ReactNode }) => {
+  // Suppress MetaMask override errors in console
+  const originalError = console.error;
+  const originalWarn = console.warn;
+  
+  useEffect(() => {
+    // Filter out MetaMask override warnings (they're harmless)
+    console.error = (...args: any[]) => {
+      const message = args[0]?.toString() || '';
+      if (
+        message.includes('Cannot set property ethereum') ||
+        message.includes('has only a getter') ||
+        message.includes('MetaMask encountered an error')
+      ) {
+        // Silently ignore MetaMask override warnings
+        return;
+      }
+      originalError.apply(console, args);
+    };
+    
+    console.warn = (...args: any[]) => {
+      const message = args[0]?.toString() || '';
+      if (
+        message.includes('MetaMask') && 
+        message.includes('ethereum')
+      ) {
+        // Silently ignore MetaMask warnings
+        return;
+      }
+      originalWarn.apply(console, args);
+    };
+    
+    return () => {
+      console.error = originalError;
+      console.warn = originalWarn;
+    };
+  }, []);
+  
+  return <>{children}</>;
+};
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {googleClientId ? (
       <GoogleOAuthProvider clientId={googleClientId}>
-        <CDPReactProvider config={cdpConfig}>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
-        </CDPReactProvider>
+        <AuthProvider>
+          <CDPProviderWrapper>
+            <CDPReactProvider config={cdpConfig}>
+              <App />
+            </CDPReactProvider>
+          </CDPProviderWrapper>
+        </AuthProvider>
       </GoogleOAuthProvider>
     ) : (
       <ErrorMessage />

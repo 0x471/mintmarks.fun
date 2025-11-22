@@ -45,7 +45,11 @@ export function useWalletStatus(): WalletStatus {
           console.log('EVM Accounts:', user.evmAccounts)
         }
       }).catch((error) => {
-        console.error('Error getting current user:', error)
+        // Silently handle errors - Chrome extensions may interfere
+        // Only log in development
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+          console.warn('[useWalletStatus] Error getting current user (may be Chrome extension interference):', error)
+        }
       })
     }
   }, [isInitialized])

@@ -525,51 +525,51 @@ export default function CreateMark() {
       const emailContent = await getEmailRaw(accessToken, selectedEmail.id)
       
       setUnifiedStep('proof-importing-sdk')
-      // Load circuit - using the local circuit.json
-      const circuitResponse = await fetch('/circuit.json')
-      if (!circuitResponse.ok) {
-        throw new Error('Circuit not found. Please compile the circuit first.')
-      }
-      const circuit = await circuitResponse.json()
       
       setUnifiedStep('proof-loading-blueprint')
-      // Generate circuit inputs using zkemail-nr
-      const { generateEmailVerifierInputs } = await import('@zk-email/zkemail-nr')
+      // Generate circuit inputs using proofGenerator (includes date_header_sequence, etc.)
+      const { ProofGenerator } = await import('@/lib/proofGenerator')
       const { Buffer } = await import('buffer')
       const emailBuffer = Buffer.from(emailContent, 'utf-8')
-      const inputs = await generateEmailVerifierInputs(emailBuffer, {
-        maxHeadersLength: 2048,
-        ignoreBodyHashCheck: true,
+      
+      const proofGenerator = new ProofGenerator()
+      const proofResult = await proofGenerator.generateProof(emailBuffer, (status) => {
+        // Update step based on progress
+        if (status.includes('Loading circuit')) {
+          setUnifiedStep('proof-loading-blueprint')
+        } else if (status.includes('Generating proof')) {
+          setUnifiedStep('proof-generating')
+        } else if (status.includes('Verifying')) {
+          setUnifiedStep('proof-validating')
+        }
       })
       
-      setUnifiedStep('proof-generating')
-      // Use ZKEmailProver from zkemail-nr
-      const { ZKEmailProver } = await import('@zk-email/zkemail-nr/dist/prover.js')
-      const prover = new ZKEmailProver(circuit, 'honk', 1)
-      const proofData = await prover.fullProve(inputs, 'honk')
+      if (!proofResult.success || !proofResult.proof) {
+        throw new Error(proofResult.error || 'Proof generation failed')
+      }
       
-      // Verify proof
-      const verified = await prover.verify(proofData, 'honk')
-      if (!verified) {
+      // ProofGenerator already verifies the proof, so we can use the result directly
+      if (!proofResult.proof.verified) {
         throw new Error('Proof verification failed')
       }
       
+      setUnifiedStep('proof-validating')
+      
       // Format result to match expected structure
+      // ProofGenerator returns proof as Uint8Array and publicInputs as hex strings
       const result = {
         proof: {
-          a: proofData.proof.a,
-          b: proofData.proof.b,
-          c: proofData.proof.c,
+          proof: proofResult.proof.proof,
+          publicInputs: proofResult.proof.publicInputs,
         },
         publicSignals: {
-          emailHeader: proofData.publicInputs[0] || '',
-          emailBody: proofData.publicInputs[1] || '',
-          eventName: selectedEmail.subject.replace(/^.*Registration Confirmation:?\s*/i, '').trim() || 'Event',
-          eventDate: selectedEmail.date
-        }
+          emailHeader: proofResult.proof.publicInputs[0] || '',
+          emailBody: proofResult.proof.publicInputs[1] || '',
+          eventName: proofResult.metadata?.eventName || selectedEmail.subject.replace(/^.*Registration Confirmation:?\s*/i, '').trim() || 'Event',
+          eventDate: proofResult.metadata?.dateValue || selectedEmail.date
+        },
+        metadata: proofResult.metadata
       }
-      
-      setUnifiedStep('proof-validating')
       const validation = validateProof(result)
       setProof(result)
       setIsProofValid(validation.isValid)

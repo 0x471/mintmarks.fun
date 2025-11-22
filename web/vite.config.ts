@@ -237,8 +237,16 @@ export default defineConfig({
   },
   server: {
     headers: {
-      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Embedder-Policy': 'credentialless',
       'Cross-Origin-Opener-Policy': 'same-origin',
+    },
+    proxy: {
+      // Proxy for Coinbase CDP if needed (though SDK usually hits endpoints directly)
+      '/amp': {
+        target: 'https://cca-lite.coinbase.com',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 });

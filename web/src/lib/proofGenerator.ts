@@ -98,13 +98,32 @@ async function generateCircuitInputs(emailContent: Buffer | Uint8Array) {
   const dkimResult = await verifyDKIMSignature(email, undefined, undefined, true);
   const headers = dkimResult.headers;
 
+  // Debug: Log headers to help diagnose Chrome issues
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    console.log('[ProofGenerator] Headers length:', headers.length);
+    console.log('[ProofGenerator] Headers preview:', headers.toString().substring(0, 500));
+  }
+
   // Extract Date header and value sequences
-  const dateHeaderSequence = getConstrainedHeaderSequence(headers, 'date');
-  const dateValueSequence = getHeaderValueSequence(dateHeaderSequence, 'date');
+  let dateHeaderSequence, dateValueSequence;
+  try {
+    dateHeaderSequence = getConstrainedHeaderSequence(headers, 'date');
+    dateValueSequence = getHeaderValueSequence(dateHeaderSequence, 'date');
+  } catch (error) {
+    console.error('[ProofGenerator] Failed to find Date header:', error);
+    console.error('[ProofGenerator] Available headers:', headers.toString().substring(0, 1000));
+    throw new Error(`Date header not found in email. This may be a browser-specific parsing issue. Original error: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
   // Extract Subject header and value sequences
-  const subjectHeaderSequence = getConstrainedHeaderSequence(headers, 'subject');
-  const subjectValueSequence = getHeaderValueSequence(subjectHeaderSequence, 'subject');
+  let subjectHeaderSequence, subjectValueSequence;
+  try {
+    subjectHeaderSequence = getConstrainedHeaderSequence(headers, 'subject');
+    subjectValueSequence = getHeaderValueSequence(subjectHeaderSequence, 'subject');
+  } catch (error) {
+    console.error('[ProofGenerator] Failed to find Subject header:', error);
+    throw new Error(`Subject header not found in email. Original error: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
   // Extract event name from subject
   const eventNameSequence = getEventNameSequence(headers, subjectValueSequence);

@@ -171,10 +171,26 @@ export async function getEmailRaw(accessToken: string, messageId: string): Promi
 
     const data = await response.json()
 
-    // Base64url decode
+    // Base64url decode - handle Chrome-specific encoding issues
     const base64 = data.raw.replace(/-/g, '+').replace(/_/g, '/')
-
-    return atob(base64) // RFC2822 format (.eml)
+    
+    // Use try-catch for better error handling in Chrome
+    let decodedEmail: string;
+    try {
+      decodedEmail = atob(base64); // RFC2822 format (.eml)
+    } catch (error) {
+      console.error('[Gmail] Base64 decode error:', error);
+      // Try with padding if decoding fails
+      const paddedBase64 = base64 + '='.repeat((4 - base64.length % 4) % 4);
+      decodedEmail = atob(paddedBase64);
+    }
+    
+    // Ensure we have proper line endings (Chrome might handle this differently)
+    if (!decodedEmail.includes('\r\n') && decodedEmail.includes('\n')) {
+      decodedEmail = decodedEmail.replace(/\n/g, '\r\n');
+    }
+    
+    return decodedEmail;
   } catch (error) {
     if (error instanceof TokenExpiredError) {
       throw error
