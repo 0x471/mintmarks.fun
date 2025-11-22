@@ -7,6 +7,21 @@ import { AuthStatus } from './components/AuthStatus';
 import './App.css';
 import { Buffer } from 'buffer';
 
+// Helper for error handling
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
+// Reusable proof generation logic
+async function generateProofFromBuffer(
+  buffer: Buffer,
+  onProgress: (status: string) => void
+): Promise<ProofResult> {
+  const generator = new ProofGenerator();
+  return generator.generateProof(buffer, onProgress);
+}
+
 function App() {
   const { accessToken, login, isAuthenticated, handleTokenExpiration } = useAuth();
   const [file, setFile] = useState<File | null>(null);
@@ -69,17 +84,10 @@ function App() {
         return;
       }
 
-      // Convert to buffer
       const emailBuffer = Buffer.from(rawEmail, 'utf-8');
-
-      // Generate proof
-      const generator = new ProofGenerator();
-      const proofResult = await generator.generateProof(emailBuffer, (status) => {
-        setProgress(status);
-      });
-
+      const proofResult = await generateProofFromBuffer(emailBuffer, setProgress);
       setResult(proofResult);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof TokenExpiredError) {
         handleTokenExpiration();
         setResult({
@@ -89,7 +97,7 @@ function App() {
       } else {
         setResult({
           success: false,
-          error: error.message || 'Unknown error occurred',
+          error: getErrorMessage(error) || 'Unknown error occurred',
         });
       }
     } finally {
@@ -108,17 +116,12 @@ function App() {
     try {
       const buffer = await file.arrayBuffer();
       const emailBuffer = Buffer.from(buffer);
-
-      const generator = new ProofGenerator();
-      const proofResult = await generator.generateProof(emailBuffer, (status) => {
-        setProgress(status);
-      });
-
+      const proofResult = await generateProofFromBuffer(emailBuffer, setProgress);
       setResult(proofResult);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setResult({
         success: false,
-        error: error.message || 'Unknown error occurred',
+        error: getErrorMessage(error) || 'Unknown error occurred',
       });
     } finally {
       setLoading(false);
@@ -140,30 +143,17 @@ function App() {
         </header>
 
         {/* View mode toggle */}
-        <div style={{ marginBottom: '2rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+        {/* View mode toggle */}
+        <div className="view-toggle">
           <button
             onClick={() => setViewMode('upload')}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: viewMode === 'upload' ? '#3b82f6' : '#e5e7eb',
-              color: viewMode === 'upload' ? 'white' : '#374151',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
+            className={`toggle-btn ${viewMode === 'upload' ? 'active' : ''}`}
           >
             Upload .eml File
           </button>
           <button
             onClick={() => setViewMode('gmail')}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: viewMode === 'gmail' ? '#3b82f6' : '#e5e7eb',
-              color: viewMode === 'gmail' ? 'white' : '#374151',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
+            className={`toggle-btn ${viewMode === 'gmail' ? 'active' : ''}`}
           >
             Select from Gmail
           </button>
@@ -172,33 +162,33 @@ function App() {
         {/* File upload view */}
         {viewMode === 'upload' && (
           <div className="upload-section">
-          <div className="file-input-wrapper">
-            <input
-              type="file"
-              accept=".eml"
-              onChange={handleFileChange}
-              disabled={loading}
-              id="eml-upload"
-            />
-            <label htmlFor="eml-upload" className={file ? 'has-file' : ''}>
-              {file ? `${file.name}` : '📎 Choose .eml file'}
-            </label>
-          </div>
-
-          <button
-            onClick={handleGenerateProof}
-            disabled={!file || loading}
-            className="generate-button"
-          >
-            {loading ? 'Generating Proof...' : 'Generate ZK Proof'}
-          </button>
-
-          {progress && (
-            <div className="progress">
-              <div className="spinner"></div>
-              <span>{progress}</span>
+            <div className="file-input-wrapper">
+              <input
+                type="file"
+                accept=".eml"
+                onChange={handleFileChange}
+                disabled={loading}
+                id="eml-upload"
+              />
+              <label htmlFor="eml-upload" className={file ? 'has-file' : ''}>
+                {file ? `${file.name}` : '📎 Choose .eml file'}
+              </label>
             </div>
-          )}
+
+            <button
+              onClick={handleGenerateProof}
+              disabled={!file || loading}
+              className="generate-button"
+            >
+              {loading ? 'Generating Proof...' : 'Generate ZK Proof'}
+            </button>
+
+            {progress && (
+              <div className="progress">
+                <div className="spinner"></div>
+                <span>{progress}</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -206,7 +196,7 @@ function App() {
         {viewMode === 'gmail' && (
           <div>
             {!isAuthenticated ? (
-              <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <div className="auth-prompt">
                 <p>Please sign in with Google to view your emails.</p>
                 <button onClick={login}>Sign in with Google</button>
               </div>
