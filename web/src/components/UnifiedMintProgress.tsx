@@ -1,243 +1,456 @@
-import { Button } from './ui/button';
-import { Alert, AlertDescription } from './ui/alert';
-import { Input } from './ui/input';
-import { AlertCircle, Wallet, FileSignature, ArrowRight, Shield, Lock, Loader2, CheckCircle2, Mail } from 'lucide-react';
-import { cn } from '@/lib/utils';
+/**
 
+ * Unified Mint Progress Component - Optimized UI/UX
+ * 
+ * UI/UX Improvements:
+ * 1. Progressive Disclosure - Only show what's needed, expandable details
+ * 2. Visual Hierarchy - Current action is most prominent
+ * 3. Compact Design - Reduced padding, better space utilization
+ * 4. Contextual Information - Show only relevant details
+ * 5. Clear CTAs - Action buttons are prominent and clear
+ */
+
+import { useState } from 'react'
+import React from 'react'
+import { Loader2, CheckCircle2, Circle, Wallet, FileCheck, Coins, Zap, Shield, ChevronDown, Info, ArrowRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Button } from './ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card'
+import { ProgressBadge } from './ProgressBadge'
+import { USDCLogo } from './USDCLogo'
+
+// Simplified 3-step unified flow
 export type UnifiedMintStep = 
+  // Step 1: Proof Generation (automatic)
   | 'proof-loading-email'
   | 'proof-importing-sdk'
   | 'proof-loading-blueprint'
   | 'proof-generating'
   | 'proof-validating'
   | 'proof-complete'
-  | 'wallet-prompt'
-  | 'wallet-connecting'
-  | 'wallet-connected'
-  | 'wallet-sign-prompt'
-  | 'wallet-signing'
+  
+  // Step 2: Connect Wallet (all wallet actions in one step)
+  | 'wallet-prompt'           // Show "Connect Wallet" button
+  | 'wallet-connecting'       // User clicked, wallet popup
+  | 'wallet-connected'        
+  | 'wallet-sign-prompt'      // Show "Sign Message" prompt
+  | 'wallet-signing'          // User signing
   | 'wallet-signed'
-  | 'wallet-fee-prompt'
-  | 'wallet-fee-paying'
+  | 'wallet-fee-prompt'       // Show "$1 Minting Fee" button
+  | 'wallet-fee-paying'       // User paying
   | 'wallet-complete'
+  
+  // Step 3: Mint (automatic)
   | 'mint-generating-artwork'
   | 'mint-submitting'
   | 'mint-confirming'
-  | 'mint-complete';
+  | 'mint-complete'
 
-interface UnifiedMintProgressProps {
-  currentStep: UnifiedMintStep;
-  onConnectWallet: () => void;
-  onSignMessage: () => void;
-  onPayFee: () => void;
-  onChangeWallet?: () => void;
-  walletAddress?: string;
-  error?: string | null;
-  // OTP flow props
-  showOtpInput?: boolean;
-  otpEmail?: string;
-  otpCode?: string;
-  onOtpEmailChange?: (email: string) => void;
-  onOtpCodeChange?: (code: string) => void;
-  isSendingOtp?: boolean;
-  isVerifyingOtp?: boolean;
+interface StepConfig {
+  key: UnifiedMintStep
+  label: string
+  description?: string
+  phase: 'proof' | 'wallet' | 'mint'
+  progress: number
+  requiresAction?: boolean
+  icon?: React.ComponentType<{ className?: string }>
 }
 
-const stepConfig: Record<UnifiedMintStep, { label: string; description?: string; phase: 'proof' | 'wallet' | 'mint' }> = {
-  'proof-loading-email': { label: 'Loading Email', phase: 'proof' },
-  'proof-importing-sdk': { label: 'Importing SDK', phase: 'proof' },
-  'proof-loading-blueprint': { label: 'Loading Blueprint', phase: 'proof' },
-  'proof-generating': { label: 'Generating Proof', phase: 'proof' },
-  'proof-validating': { label: 'Validating Proof', phase: 'proof' },
-  'proof-complete': { label: 'Proof Complete', phase: 'proof' },
-  'wallet-prompt': { label: 'Connect Wallet', phase: 'wallet', description: 'Connect your wallet to continue' },
-  'wallet-connecting': { label: 'Connecting...', phase: 'wallet' },
-  'wallet-connected': { label: 'Wallet Connected', phase: 'wallet' },
-  'wallet-sign-prompt': { label: 'Sign Message', phase: 'wallet', description: 'Sign a message to verify ownership' },
-  'wallet-signing': { label: 'Signing...', phase: 'wallet' },
-  'wallet-signed': { label: 'Message Signed', phase: 'wallet' },
-  'wallet-fee-prompt': { label: 'Pay Minting Fee', phase: 'wallet', description: 'Approve the transaction to mint your mark' },
-  'wallet-fee-paying': { label: 'Paying Fee...', phase: 'wallet' },
-  'wallet-complete': { label: 'Wallet Setup Complete', phase: 'wallet' },
-  'mint-generating-artwork': { label: 'Generating Artwork', phase: 'mint' },
-  'mint-submitting': { label: 'Submitting Transaction', phase: 'mint' },
-  'mint-confirming': { label: 'Confirming...', phase: 'mint' },
-  'mint-complete': { label: 'Mint Complete', phase: 'mint' },
-};
+const stepConfigs: StepConfig[] = [
+  // Step 1: Proof Generation (0-33%)
+  { key: 'proof-loading-email', label: 'Loading Email Content', phase: 'proof', progress: 5 },
+  { key: 'proof-importing-sdk', label: 'Importing ZK SDK', phase: 'proof', progress: 10 },
+  { key: 'proof-loading-blueprint', label: 'Loading Blueprint', phase: 'proof', progress: 15 },
+  { key: 'proof-generating', label: 'Generating ZK Proof', description: 'This may take 30-60 seconds', phase: 'proof', progress: 25 },
+  { key: 'proof-validating', label: 'Validating Proof', phase: 'proof', progress: 30 },
+  { key: 'proof-complete', label: 'Proof Ready', phase: 'proof', progress: 33 },
+  
+  // Step 2: Connect Wallet (33-66%) - ALL wallet actions here
+  { key: 'wallet-prompt', label: 'Connect Wallet', description: 'Click to connect your wallet', phase: 'wallet', progress: 38, requiresAction: true },
+  { key: 'wallet-connecting', label: 'Connecting Wallet', phase: 'wallet', progress: 42 },
+  { key: 'wallet-connected', label: 'Wallet Connected', phase: 'wallet', progress: 45 },
+  { key: 'wallet-sign-prompt', label: 'Sign Message', description: 'Sign to verify ownership', phase: 'wallet', progress: 50, requiresAction: true },
+  { key: 'wallet-signing', label: 'Signing Message', phase: 'wallet', progress: 54 },
+  { key: 'wallet-signed', label: 'Message Signed', phase: 'wallet', progress: 57 },
+  { key: 'wallet-fee-prompt', label: 'Pay Minting Fee', description: 'Approve $1 minting fee', phase: 'wallet', progress: 60, requiresAction: true },
+  { key: 'wallet-fee-paying', label: 'Processing Payment', phase: 'wallet', progress: 63 },
+  { key: 'wallet-complete', label: 'Wallet Setup Complete', phase: 'wallet', progress: 66 },
+  
+  // Step 3: Mint (66-100%)
+  { key: 'mint-generating-artwork', label: 'Generating NFT Artwork', phase: 'mint', progress: 75 },
+  { key: 'mint-submitting', label: 'Submitting to Blockchain', phase: 'mint', progress: 85 },
+  { key: 'mint-confirming', label: 'Waiting for Confirmation', description: 'This may take a few moments', phase: 'mint', progress: 95 },
+  { key: 'mint-complete', label: 'NFT Minted Successfully!', phase: 'mint', progress: 100 },
+]
+
+interface PhaseGroup {
+  phase: 'proof' | 'wallet' | 'mint'
+  title: string
+  shortTitle: string
+  description: string
+  icon: React.ComponentType<{ className?: string }>
+  steps: StepConfig[]
+}
+
+const phaseGroups: PhaseGroup[] = [
+  {
+    phase: 'proof',
+    title: 'Step 1: Proof Generation',
+    shortTitle: 'Proof w/ ZK-email',
+    description: 'Generating zero-knowledge proof using ZK-email',
+    icon: Shield,
+    steps: stepConfigs.filter(s => s.phase === 'proof'),
+  },
+  {
+    phase: 'wallet',
+    title: 'Step 2: Connect Your Wallet',
+    shortTitle: 'Wallet',
+    description: 'Connect, sign, and pay minting fee on Base',
+    icon: Wallet,
+    steps: stepConfigs.filter(s => s.phase === 'wallet'),
+  },
+  {
+    phase: 'mint',
+    title: 'Step 3: Mint on Base',
+    shortTitle: 'Mint',
+    description: 'Creating your NFT on Base network',
+    icon: Zap,
+    steps: stepConfigs.filter(s => s.phase === 'mint'),
+  },
+]
+
+interface UnifiedMintProgressProps {
+  currentStep: UnifiedMintStep
+  className?: string
+  onConnectWallet?: () => void
+  onSignMessage?: () => void
+  onPayFee?: () => void
+  onChangeWallet?: () => void
+  walletAddress?: string
+  error?: string | null
+  // Support for OTP flow props (kept for compatibility, but might need refactoring if not used)
+  showOtpInput?: boolean
+  otpEmail?: string
+  otpCode?: string
+  onOtpEmailChange?: (email: string) => void
+  onOtpCodeChange?: (code: string) => void
+  isSendingOtp?: boolean
+  isVerifyingOtp?: boolean
+}
 
 export function UnifiedMintProgress({
   currentStep,
+  className,
   onConnectWallet,
   onSignMessage,
   onPayFee,
   onChangeWallet,
   walletAddress,
   error,
-  showOtpInput = false,
-  otpEmail = '',
-  otpCode = '',
-  onOtpEmailChange,
-  onOtpCodeChange,
-  isSendingOtp = false,
-  isVerifyingOtp = false,
 }: UnifiedMintProgressProps) {
-  const config = stepConfig[currentStep];
-  const isWalletPhase = config.phase === 'wallet';
+  const [expandedPhase, setExpandedPhase] = useState<string | null>(null)
   
-  const isLoading = currentStep.includes('loading') || currentStep.includes('connecting') || 
-                    currentStep.includes('signing') || currentStep.includes('paying') ||
-                    currentStep.includes('submitting') || currentStep.includes('confirming') ||
-                    currentStep.includes('generating');
-  
-  const isPrompt = currentStep.includes('prompt');
-  const isComplete = currentStep.includes('complete');
+  const currentStepConfig = stepConfigs.find(s => s.key === currentStep)
+  const currentProgress = currentStepConfig?.progress || 0
+  const currentPhase = currentStepConfig?.phase
+
+  // Determine phase status
+  const getPhaseStatus = (phase: 'proof' | 'wallet' | 'mint'): 'complete' | 'active' | 'pending' => {
+    if (!currentPhase) return 'pending'
+    
+    const phaseOrder = ['proof', 'wallet', 'mint']
+    const currentPhaseIndex = phaseOrder.indexOf(currentPhase)
+    const targetPhaseIndex = phaseOrder.indexOf(phase)
+    
+    if (targetPhaseIndex < currentPhaseIndex) return 'complete'
+    if (targetPhaseIndex === currentPhaseIndex) return 'active'
+    return 'pending'
+  }
+
+  // Get step status relative to current step
+  const getStepStatus = (step: StepConfig): 'complete' | 'active' | 'pending' => {
+    const currentIndex = stepConfigs.findIndex(s => s.key === currentStep)
+    const stepIndex = stepConfigs.findIndex(s => s.key === step.key)
+    
+    if (stepIndex < currentIndex) return 'complete'
+    if (stepIndex === currentIndex) return 'active'
+    return 'pending'
+  }
+
+  // Get current step details
+  const currentStepDetails = stepConfigs.find(s => s.key === currentStep)
+  const currentPhaseGroup = phaseGroups.find(g => g.phase === currentPhase)
 
   return (
-    <div className="space-y-4">
-      {/* Current Step Display */}
-      <div className={cn(
-        "p-4 rounded-lg border transition-all",
-        isLoading && "bg-[var(--glass-bg-secondary)] border-[var(--glass-border)]",
-        isPrompt && "bg-[var(--glass-bg-primary)] border-[var(--glass-border)]",
-        isComplete && "bg-green-500/10 border-green-500/30"
-      )}>
-        <div className="flex items-center gap-3">
-          {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin text-[var(--primary)]" />
-          ) : isComplete ? (
-            <CheckCircle2 className="h-5 w-5 text-green-500" />
-          ) : (
-            <div className="h-5 w-5 rounded-full border-2 border-[var(--page-border-color)]" />
-          )}
-          <div className="flex-1">
-            <h3 className="font-semibold text-[var(--page-text-primary)]">
-              {config.label}
-            </h3>
-            {config.description && (
-              <p className="text-sm text-[var(--page-text-secondary)] mt-1">
-                {config.description}
-              </p>
-            )}
-            {walletAddress && isWalletPhase && (
-              <p className="text-xs text-[var(--page-text-muted)] mt-1 font-mono">
-                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
+    <div className={cn('space-y-4', className)}>
+      {/* Horizontal Timeline - Top */}
+      <div className="flex items-center justify-center gap-2 px-4 py-3">
+        {phaseGroups.map((group, index) => {
+          const phaseStatus = getPhaseStatus(group.phase)
+          const isActive = phaseStatus === 'active'
+          const isComplete = phaseStatus === 'complete'
+          
+          const PhaseIcon = group.icon
 
-      {/* Error Display */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* OTP Input Section */}
-      {showOtpInput && currentStep === 'wallet-prompt' && (
-        <div className="space-y-3 pt-2">
-          {!otpCode && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-[var(--page-text-primary)]">
-                Email Address
-              </label>
-              <Input
-                type="email"
-                value={otpEmail}
-                onChange={(e) => onOtpEmailChange?.(e.target.value)}
-                placeholder="your@email.com"
-                disabled={isSendingOtp}
-                className="w-full"
-              />
-            </div>
-          )}
-          {otpEmail && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-[var(--page-text-primary)]">
-                Enter OTP Code
-              </label>
-              <Input
-                type="text"
-                value={otpCode}
-                onChange={(e) => onOtpCodeChange?.(e.target.value)}
-                placeholder="123456"
-                disabled={isVerifyingOtp}
-                maxLength={6}
-                className="w-full text-center text-lg tracking-widest"
-              />
-              <p className="text-xs text-[var(--page-text-secondary)]">
-                Check your email ({otpEmail}) for the verification code
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Action Buttons */}
-      {isPrompt && (
-        <div className="flex gap-3 pt-2">
-          {currentStep === 'wallet-prompt' && (
-            <Button 
-              onClick={onConnectWallet} 
-              className="flex-1"
-              disabled={isSendingOtp || isVerifyingOtp || (showOtpInput && !otpEmail)}
-            >
-              {isSendingOtp ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending OTP...
-                </>
-              ) : isVerifyingOtp ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Verifying...
-                </>
-              ) : showOtpInput && otpCode ? (
-                <>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Verify OTP
-                </>
-              ) : (
-                <>
-                  <Wallet className="mr-2 h-4 w-4" />
-                  {showOtpInput ? 'Send OTP' : 'Connect Wallet'}
-                </>
+          return (
+            <React.Fragment key={group.phase}>
+              {/* Step Badge */}
+              <div className="flex-1 flex justify-center px-2">
+                <ProgressBadge
+                  label={`${index + 1}. ${group.shortTitle}`}
+                  status={isComplete ? 'complete' : isActive ? 'active' : 'pending'}
+                  icon={PhaseIcon as any}
+                  className="w-full max-w-[180px]"
+                />
+              </div>
+              {/* Arrow */}
+              {index < phaseGroups.length - 1 && (
+                <ArrowRight className={cn(
+                  'h-4 w-4 text-muted-foreground flex-shrink-0',
+                  index < phaseGroups.findIndex(g => g.phase === currentPhase) && 'text-green-500'
+                )} />
               )}
-            </Button>
-          )}
-          {currentStep === 'wallet-sign-prompt' && (
-            <Button onClick={onSignMessage} className="flex-1">
-              <FileSignature className="mr-2 h-4 w-4" />
-              Sign Message
-            </Button>
-          )}
-          {currentStep === 'wallet-fee-prompt' && (
-            <Button onClick={onPayFee} className="flex-1">
-              Pay Fee
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          )}
-          {onChangeWallet && isWalletPhase && walletAddress && (
-            <Button onClick={onChangeWallet} variant="outline" size="sm">
-              Change Wallet
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* Security Footer */}
-      <div className="flex items-center justify-center gap-4 pt-2 text-xs text-[var(--page-text-muted)]">
-        <div className="flex items-center gap-1">
-          <Shield className="w-3 h-3" />
-          <span>Zero-knowledge</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Lock className="w-3 h-3" />
-          <span>Private & Secure</span>
-        </div>
+            </React.Fragment>
+          )
+        })}
       </div>
+
+      {/* Current Step Card - Main Focus */}
+      {currentStepDetails && currentPhaseGroup && (
+        <Card className="overflow-hidden border-[var(--figma-card-stroke)] backdrop-blur-[var(--figma-card-blur)] bg-[var(--modal-bg)]">
+          <CardHeader className="pb-2 pt-3">
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                'flex items-center justify-center w-8 h-8 rounded-lg',
+                getStepStatus(currentStepDetails) === 'complete' && 'bg-green-500/10',
+                getStepStatus(currentStepDetails) !== 'complete' && 'bg-primary/10'
+              )}>
+                {getStepStatus(currentStepDetails) === 'complete' ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                ) : currentStepDetails.key.includes('loading') || currentStepDetails.key.includes('generating') || currentStepDetails.key.includes('connecting') || currentStepDetails.key.includes('signing') || currentStepDetails.key.includes('paying') || currentStepDetails.key.includes('submitting') || currentStepDetails.key.includes('confirming') ? (
+                  <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                ) : (
+                  <Circle className="h-4 w-4 text-primary fill-primary" />
+                )}
+              </div>
+              <div className="flex-1">
+                <CardTitle className="text-sm">
+                  {currentStepDetails.label}
+                </CardTitle>
+                {currentStepDetails.description && (
+                  <CardDescription className="mt-0.5 flex items-start gap-1 text-xs">
+                    <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                    <span>{currentStepDetails.description}</span>
+                  </CardDescription>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-2">
+            {/* Action Buttons */}
+            {currentStepDetails.requiresAction && (
+              <div className="space-y-3">
+                {currentStepDetails.key === 'wallet-prompt' && onConnectWallet && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--page-text-secondary)' }}>
+                      <Info className="h-3 w-3" />
+                      <span>Will mint on Base network</span>
+                    </div>
+                    <Button
+                      onClick={onConnectWallet}
+                      size="lg"
+                      className="gap-2 w-full h-11"
+                    >
+                      <Wallet className="h-4 w-4" />
+                      Connect Wallet
+                    </Button>
+                  </div>
+                )}
+                
+                {currentStepDetails.key === 'wallet-sign-prompt' && onSignMessage && walletAddress && (
+                  <div className="space-y-2">
+                    <Card className="border-[var(--figma-card-stroke)] bg-[var(--modal-bg)]">
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardDescription className="text-xs mb-0.5">Connected Wallet</CardDescription>
+                            <p className="font-mono font-semibold text-xs" style={{ color: 'var(--page-text-primary)' }}>
+                              {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                            </p>
+                          </div>
+                          {onChangeWallet && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={onChangeWallet}
+                              className="h-7 px-2 text-xs"
+                            >
+                              Change
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--page-text-secondary)' }}>
+                      <Shield className="h-3 w-3" />
+                      <span>Sign to verify ownership on Base</span>
+                    </div>
+                    <Button
+                      onClick={onSignMessage}
+                      size="lg"
+                      className="gap-2 w-full h-11"
+                    >
+                      <FileCheck className="h-4 w-4" />
+                      Sign Message
+                    </Button>
+                  </div>
+                )}
+                
+                {currentStepDetails.key === 'wallet-fee-prompt' && onPayFee && (
+                  <div className="space-y-2">
+                    <Card className="border-[var(--figma-card-stroke)] bg-[var(--modal-bg)]">
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                          <CardDescription className="text-xs">Minting Fee</CardDescription>
+                          <div className="flex items-center gap-1.5">
+                            <USDCLogo 
+                              className="h-5 w-5 flex-shrink-0"
+                              style={{ color: 'var(--page-text-primary)' }}
+                            />
+                            <span className="text-base font-bold" style={{ color: 'var(--page-text-primary)' }}>
+                              1 USDC
+                            </span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--page-text-secondary)' }}>
+                      <Zap className="h-3 w-3" />
+                      <span>Fast and low-cost minting on Base</span>
+                    </div>
+                    <Button
+                      onClick={onPayFee}
+                      size="lg"
+                      className="gap-2 w-full h-11"
+                    >
+                      <Coins className="h-4 w-4" />
+                      Pay Minting Fee
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Loading State */}
+            {!currentStepDetails.requiresAction && (
+              <div className="flex items-center gap-3 py-3">
+                <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                <span className="text-sm font-medium" style={{ color: 'var(--page-text-secondary)' }}>
+                  {currentStepDetails.phase === 'proof' && 'Generating ZK-proof...'}
+                  {currentStepDetails.phase === 'wallet' && 'Processing wallet transaction...'}
+                  {currentStepDetails.phase === 'mint' && 'Minting on Base network...'}
+                </span>
+              </div>
+            )}
+
+            {/* Progress Bar */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium" style={{ color: 'var(--page-text-secondary)' }}>
+                  Overall Progress
+                </span>
+                <span className="text-xs font-bold" style={{ color: 'var(--page-text-primary)' }}>
+                  {currentProgress}%
+                </span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="h-1.5 rounded-full transition-all duration-500 ease-out"
+                  style={{ 
+                    width: `${currentProgress}%`,
+                    backgroundColor: 'var(--primary)',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Detailed Steps - Expandable */}
+            {expandedPhase === currentPhase && currentPhaseGroup && (
+              <Card className="mt-3 border-[var(--figma-card-stroke)] bg-[var(--modal-bg)]">
+                <CardContent className="p-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-xs">
+                        {currentPhaseGroup.title} Steps
+                      </CardTitle>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setExpandedPhase(null)}
+                        className="h-6 w-6 p-0"
+                      >
+                        <ChevronDown className="h-3 w-3 rotate-180" />
+                      </Button>
+                    </div>
+                    <div className="space-y-1">
+                      {currentPhaseGroup.steps.map((step) => {
+                        const stepStatus = getStepStatus(step)
+                        const isCurrentStep = step.key === currentStep
+                        return (
+                          <div key={step.key} className="flex items-center gap-2 py-1">
+                            <div className="flex-shrink-0">
+                              {stepStatus === 'complete' ? (
+                                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                              ) : isCurrentStep ? (
+                                <Loader2 className="h-3 w-3 text-primary animate-spin" />
+                              ) : (
+                                <Circle className="h-3 w-3 text-muted-foreground" />
+                              )}
+                            </div>
+                            <span className={cn(
+                              'text-xs',
+                              stepStatus === 'complete' && 'text-green-600 dark:text-green-400',
+                              isCurrentStep && 'text-primary font-semibold',
+                              stepStatus === 'pending' && 'text-muted-foreground'
+                            )}>
+                              {step.label}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Expand/Collapse Button */}
+            {!expandedPhase && currentPhase && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setExpandedPhase(currentPhase)}
+                className="gap-2 w-full h-8 text-xs"
+                style={{ color: 'var(--page-text-secondary)' }}
+              >
+                <ChevronDown className="h-3 w-3" />
+                Show detailed steps
+              </Button>
+            )}
+
+            {/* Error Display */}
+            {error && (
+              <Card className="border-red-300 bg-red-50 dark:bg-red-900/10 dark:border-red-500/30">
+                <CardContent className="p-3">
+                  <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                    {error}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
-  );
+  )
 }
