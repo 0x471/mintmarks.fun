@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import wasm from 'vite-plugin-wasm';
 import topLevelAwait from 'vite-plugin-top-level-await';
-import { copyFileSync, existsSync } from 'fs';
-import { resolve } from 'path';
+import { copyFileSync, existsSync, statSync, readdirSync } from 'fs';
+import { resolve, join } from 'path';
 import { execSync } from 'child_process';
 
 // Plugin to auto-compile and copy circuit files
@@ -15,10 +15,41 @@ const copyCircuitPlugin = () => {
       const circuitSource = resolve(__dirname, '../mintmarks_circuits/target/mintmarks_circuits.json');
       const circuitDest = resolve(__dirname, 'public/circuit.json');
       const circuitDir = resolve(__dirname, '../mintmarks_circuits');
+      const circuitSrcDir = join(circuitDir, 'src');
 
-      // Auto-compile circuit if missing
+      // Check if recompilation needed
+      let needsCompile = false;
+
       if (!existsSync(circuitSource)) {
         console.log('Circuit not found, auto-compiling...');
+        needsCompile = true;
+      } else if (existsSync(circuitSrcDir)) {
+        // Check if any source file is newer than compiled circuit
+        const compiledTime = statSync(circuitSource).mtimeMs;
+
+        // Recursively check all .nr files
+        const checkDir = (dir: string) => {
+          const entries = readdirSync(dir, { withFileTypes: true });
+          for (const entry of entries) {
+            const fullPath = join(dir, entry.name);
+            if (entry.isDirectory()) {
+              checkDir(fullPath);
+            } else if (entry.isFile() && entry.name.endsWith('.nr')) {
+              const srcTime = statSync(fullPath).mtimeMs;
+              if (srcTime > compiledTime) {
+                console.log(`Circuit source changed (${entry.name}), recompiling...`);
+                needsCompile = true;
+                return;
+              }
+            }
+          }
+        };
+
+        checkDir(circuitSrcDir);
+      }
+
+      // Compile if needed
+      if (needsCompile) {
         try {
           // Check if mintmarks_circuits directory exists
           if (!existsSync(circuitDir)) {
