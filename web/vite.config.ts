@@ -150,6 +150,12 @@ export default defineConfig({
     esbuildOptions: {
       target: 'esnext',
     },
+    include: ['@zk-email/zkemail-nr'],
+  },
+  resolve: {
+    alias: {
+      stream: 'stream-browserify',
+    },
   },
   build: {
     target: 'esnext',
