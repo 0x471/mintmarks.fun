@@ -1,13 +1,18 @@
 import { useState } from 'react';
 import { ProofGenerator, validateEmlFile, type ProofResult } from './lib/proofGenerator';
+import { useAuth } from './contexts/AuthContext';
+import { getEmailRaw, TokenExpiredError } from './services/gmail';
+import { EmailList } from './components/EmailList';
 import './App.css';
 import { Buffer } from 'buffer';
 
 function App() {
+  const { accessToken, login, isAuthenticated, handleTokenExpiration } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ProofResult | null>(null);
   const [progress, setProgress] = useState('');
+  const [viewMode, setViewMode] = useState<'upload' | 'gmail'>('upload');
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -36,6 +41,59 @@ function App() {
 
       setFile(selectedFile);
       setResult(null);
+    }
+  };
+
+  const handleEmailSelect = async (emailId: string) => {
+    if (!accessToken) {
+      login();
+      return;
+    }
+
+    setLoading(true);
+    setProgress('Fetching email from Gmail...');
+    setResult(null);
+
+    try {
+      // Fetch raw email content
+      const rawEmail = await getEmailRaw(accessToken, emailId);
+
+      // Validate email content
+      const validation = validateEmlFile(rawEmail);
+      if (!validation.valid) {
+        setResult({
+          success: false,
+          error: validation.error,
+        });
+        return;
+      }
+
+      // Convert to buffer
+      const emailBuffer = Buffer.from(rawEmail, 'utf-8');
+
+      // Generate proof
+      const generator = new ProofGenerator();
+      const proofResult = await generator.generateProof(emailBuffer, (status) => {
+        setProgress(status);
+      });
+
+      setResult(proofResult);
+    } catch (error: any) {
+      if (error instanceof TokenExpiredError) {
+        handleTokenExpiration();
+        setResult({
+          success: false,
+          error: 'Session expired. Please sign in again.',
+        });
+      } else {
+        setResult({
+          success: false,
+          error: error.message || 'Unknown error occurred',
+        });
+      }
+    } finally {
+      setLoading(false);
+      setProgress('');
     }
   };
 
@@ -79,7 +137,39 @@ function App() {
           </p>
         </header>
 
-        <div className="upload-section">
+        {/* View mode toggle */}
+        <div style={{ marginBottom: '2rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+          <button
+            onClick={() => setViewMode('upload')}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: viewMode === 'upload' ? '#3b82f6' : '#e5e7eb',
+              color: viewMode === 'upload' ? 'white' : '#374151',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            Upload .eml File
+          </button>
+          <button
+            onClick={() => setViewMode('gmail')}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: viewMode === 'gmail' ? '#3b82f6' : '#e5e7eb',
+              color: viewMode === 'gmail' ? 'white' : '#374151',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            Select from Gmail
+          </button>
+        </div>
+
+        {/* File upload view */}
+        {viewMode === 'upload' && (
+          <div className="upload-section">
           <div className="file-input-wrapper">
             <input
               type="file"
@@ -107,7 +197,22 @@ function App() {
               <span>{progress}</span>
             </div>
           )}
-        </div>
+          </div>
+        )}
+
+        {/* Gmail email list view */}
+        {viewMode === 'gmail' && (
+          <div>
+            {!isAuthenticated ? (
+              <div style={{ textAlign: 'center', padding: '2rem' }}>
+                <p>Please sign in with Google to view your emails.</p>
+                <button onClick={login}>Sign in with Google</button>
+              </div>
+            ) : (
+              <EmailList onEmailSelect={handleEmailSelect} />
+            )}
+          </div>
+        )}
 
         {result && (
           <div className={`result ${result.success ? 'success' : 'error'}`}>
