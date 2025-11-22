@@ -1,0 +1,17 @@
+{
+  "name": "mintmarks_circuits",
+  "version": "1.0.0",
+  "description": "Mintmarks proof-of-attendance ZK circuits",
+  "type": "module",
+  "scripts": {
+    "compile": "nargo compile",
+    "check": "nargo check",
+    "generate:verifier": "node scripts/generateVerifier.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@aztec/bb.js": "0.84.0"
+  }
+}
