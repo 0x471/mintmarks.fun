@@ -72,14 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Fetch user info when authenticated
   useEffect(() => {
-    if (accessToken && !isTokenExpired()) {
+    if (accessToken) {
       fetchUserInfo()
     } else {
       setUserInfo(null)
     }
   }, [accessToken])
-
-
 
   // Check for token in URL hash on mount (handling redirect callback)
   useEffect(() => {

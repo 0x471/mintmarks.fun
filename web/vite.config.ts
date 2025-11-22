@@ -1,3 +1,4 @@
+import path from "path"
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
@@ -121,22 +122,47 @@ const copyWasmPlugin = () => {
   };
 };
 
-// Plugin to force resolve promises modules to mocks
+// Plugin to force resolve Node.js promises modules to browser-compatible mocks
+// Required for zkemail-nr which uses Node.js APIs (fs, stream, timers, dns)
 const forceResolvePromisesPlugin = () => {
   return {
     name: 'force-resolve-promises',
     enforce: 'pre' as const,
     resolveId(source: string) {
+      // Handle fs/promises variations
       if (source === 'fs/promises' || source === 'node:fs/promises') {
         return resolve(__dirname, 'src/mocks/fs-promises.ts');
       }
-      if (source === 'stream/promises' || source === 'node:stream/promises') {
+      // Handle stream/promises variations (including resolved absolute paths)
+      if (
+        source === 'stream/promises' ||
+        source === 'node:stream/promises' ||
+        source === 'stream-browserify/promises' ||
+        source.endsWith('stream-browserify/promises')
+      ) {
         return resolve(__dirname, 'src/mocks/stream-promises.ts');
       }
-      if (source === 'stream-browserify/promises') {
-        return resolve(__dirname, 'src/mocks/stream-promises.ts');
+      // Handle timers/promises variations
+      if (source === 'timers/promises' || source === 'node:timers/promises') {
+        return resolve(__dirname, 'src/mocks/generic-promises.ts');
       }
-      if (source.endsWith('/promises')) {
+      // Handle dns/promises variations
+      if (source === 'dns/promises' || source === 'node:dns/promises') {
+        return resolve(__dirname, 'src/mocks/generic-promises.ts');
+      }
+      // Catch resolved paths ending with /promises from node polyfills
+      // This happens when node-stdlib-browser resolves modules to mock files
+      if (source.endsWith('/promises') && (
+        source.includes('node-stdlib-browser') ||
+        source.includes('empty.js') ||
+        source.includes('node_modules')
+      )) {
+        if (source.includes('fs') || source.includes('empty')) {
+          return resolve(__dirname, 'src/mocks/fs-promises.ts');
+        }
+        if (source.includes('stream')) {
+          return resolve(__dirname, 'src/mocks/stream-promises.ts');
+        }
         return resolve(__dirname, 'src/mocks/generic-promises.ts');
       }
       return null;
@@ -177,7 +203,9 @@ export default defineConfig({
     include: ['@zk-email/zkemail-nr'],
   },
   resolve: {
+    // Aliases for Node.js promises modules - required for zkemail-nr browser compatibility
     alias: [
+      { find: '@', replacement: path.resolve(__dirname, 'src') },
       { find: 'stream/promises', replacement: resolve(__dirname, 'src/mocks/stream-promises.ts') },
       { find: 'node:stream/promises', replacement: resolve(__dirname, 'src/mocks/stream-promises.ts') },
       { find: 'fs/promises', replacement: resolve(__dirname, 'src/mocks/fs-promises.ts') },
@@ -186,9 +214,6 @@ export default defineConfig({
       { find: 'node:timers/promises', replacement: resolve(__dirname, 'src/mocks/generic-promises.ts') },
       { find: 'dns/promises', replacement: resolve(__dirname, 'src/mocks/generic-promises.ts') },
       { find: 'node:dns/promises', replacement: resolve(__dirname, 'src/mocks/generic-promises.ts') },
-      // Catch-all for other /promises imports
-      { find: /^.*\/promises$/, replacement: resolve(__dirname, 'src/mocks/generic-promises.ts') },
-      // Fix for stream/promises resolving to stream-browserify/promises
       { find: 'stream-browserify/promises', replacement: resolve(__dirname, 'src/mocks/stream-promises.ts') },
     ],
   },

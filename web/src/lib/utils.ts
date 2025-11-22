@@ -1,3 +1,10 @@
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
 // Adapted from mintmarks_circuits/scripts/utils.js for browser use
 
 import { Buffer } from "buffer";
@@ -102,51 +109,27 @@ export function getEventNameSequence(
   }
 
   // fallback: use entire subject value as event name
+  return subjectValueSequence;
+}
 
-    return subjectValueSequence;
+import type { GmailMessageDetail } from '../types/gmail';
+import { emailFilterConfig, type EmailSource } from '../config/emailFilters';
 
-  }
-
-  
-
-  
-
-  import type { GmailMessageDetail } from '../types/gmail';
-
-  import { emailFilterConfig, EmailSource } from '../config/emailFilters';
-
-  
-
-  /**
-
-   * Determines the source of an email ('luma', 'substack', or 'other')
-
-   * based on the 'from' address and the domains defined in the filter configuration.
-
-   * @param email The email detail object.
-
-   * @returns The source of the email.
-
-   */
-
-  export const getEmailSource = (email: GmailMessageDetail): EmailSource | 'other' => {
-
-    const from = email.from.toLowerCase();
-
-    for (const source in emailFilterConfig) {
-
-      const config = emailFilterConfig[source as EmailSource];
-
-      if (config.apiQuery.domains.some(domain => from.includes(domain))) {
-
-        return source as EmailSource;
-
-      }
-
+/**
+ * Determines the source of an email ('luma', 'substack', or 'other')
+ * based on the 'from' address and the domains defined in the filter configuration.
+ * @param email The email detail object.
+ * @returns The source of the email.
+ */
+export const getEmailSource = (email: GmailMessageDetail): EmailSource | 'other' => {
+  const from = email.from.toLowerCase();
+  for (const source in emailFilterConfig) {
+    const config = emailFilterConfig[source as EmailSource];
+    if (config.apiQuery.domains.some(domain => from.includes(domain))) {
+      return source as EmailSource;
     }
-
-    return 'other';
-
-  };
+  }
+  return 'other';
+};
 
   

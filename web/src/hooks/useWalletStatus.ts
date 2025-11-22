@@ -1,8 +1,7 @@
-import { 
-  useIsSignedIn, 
-  useEvmAddress, 
-  useCurrentUser,
-  useIsInitialized 
+import {
+  useIsSignedIn,
+  useEvmAddress,
+  useIsInitialized
 } from '@coinbase/cdp-hooks'
 import { useEffect, useState } from 'react'
 import { getCurrentUser } from '@coinbase/cdp-core'
@@ -27,7 +26,6 @@ export function useWalletStatus(): WalletStatus {
   const { isInitialized } = useIsInitialized() // ✅ Best Practice: SDK initialize kontrolü
   const { isSignedIn } = useIsSignedIn()
   const { evmAddress } = useEvmAddress()
-  const { currentUser } = useCurrentUser()
 
   const [isLoading, setIsLoading] = useState(true)
 
@@ -58,7 +56,7 @@ export function useWalletStatus(): WalletStatus {
   return {
     hasWallet,
     isSignedIn,
-    evmAddress,
+    evmAddress: evmAddress ?? undefined, // Convert null to undefined for type compatibility
     isLoading: isLoading || !isInitialized, // SDK initialize olana kadar loading
     needsWallet,
     isInitialized,
