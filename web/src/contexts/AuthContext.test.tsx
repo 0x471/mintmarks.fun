@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { AuthProvider, useAuth } from './AuthContext'
+import * as GoogleOAuth from '@react-oauth/google'
 
 // Mock @react-oauth/google
 vi.mock('@react-oauth/google', () => ({
@@ -9,7 +10,7 @@ vi.mock('@react-oauth/google', () => ({
 }))
 
 describe('AuthContext', () => {
-  const mockUseGoogleLogin = vi.mocked(require('@react-oauth/google').useGoogleLogin)
+  const mockUseGoogleLogin = vi.mocked(GoogleOAuth.useGoogleLogin)
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -90,7 +91,6 @@ describe('AuthContext', () => {
 
   it('should handle successful login', async () => {
     const mockLogin = vi.fn()
-    const mockOnSuccess = vi.fn()
 
     mockLogin.mockImplementation((options) => {
       // Simulate successful login

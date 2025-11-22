@@ -4,7 +4,7 @@ import { searchEmails, getEmailRaw, TokenExpiredError, isTokenExpiredError } fro
 describe('Gmail Service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    global.fetch = vi.fn()
+    globalThis.fetch = vi.fn() as typeof fetch
   })
 
   describe('isTokenExpiredError', () => {
@@ -81,7 +81,7 @@ describe('Gmail Service', () => {
           }),
         })
 
-      global.fetch = mockFetch
+      globalThis.fetch = mockFetch
 
       const result = await searchEmails(mockAccessToken, '', undefined, 30)
 
@@ -98,7 +98,7 @@ describe('Gmail Service', () => {
         messages: undefined,
       }
 
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockResponse),
       })
@@ -110,7 +110,7 @@ describe('Gmail Service', () => {
     })
 
     it('should handle token expired error', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 401,
       })
@@ -147,7 +147,7 @@ describe('Gmail Service', () => {
           }),
         })
 
-      global.fetch = mockFetch
+      globalThis.fetch = mockFetch
 
       const result = await searchEmails(mockAccessToken, '', undefined, 1)
 
@@ -164,7 +164,7 @@ describe('Gmail Service', () => {
       const rawEmailContent = 'From: sender@example.com\r\nSubject: Test\r\n\r\nTest body'
       const base64Content = btoa(rawEmailContent)
 
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ raw: base64Content }),
       })
@@ -175,7 +175,7 @@ describe('Gmail Service', () => {
     })
 
     it('should handle token expired error', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 401,
       })
@@ -187,7 +187,7 @@ describe('Gmail Service', () => {
       const rawEmailContent = 'From: test@example.com\r\n\r\nHello World'
       const base64Content = btoa(rawEmailContent).replace(/\+/g, '-').replace(/\//g, '_')
 
-      global.fetch = vi.fn().mockResolvedValue({
+      globalThis.fetch = vi.fn().mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ raw: base64Content }),
       })

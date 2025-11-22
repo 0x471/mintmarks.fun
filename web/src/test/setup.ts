@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
+import { Buffer } from 'buffer'
 
 // Mock environment variables
 Object.defineProperty(import.meta, 'env', {
@@ -23,7 +24,11 @@ Object.defineProperty(window, 'localStorage', {
 })
 
 // Mock fetch
-global.fetch = vi.fn()
+if (typeof globalThis.fetch === 'undefined') {
+  (globalThis as any).fetch = vi.fn() as typeof fetch
+}
 
 // Mock Buffer
-global.Buffer = require('buffer').Buffer
+if (typeof globalThis.Buffer === 'undefined') {
+  (globalThis as any).Buffer = Buffer
+}

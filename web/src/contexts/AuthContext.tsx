@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { useGoogleLogin } from '@react-oauth/google'
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+
 
 // Constants
 const TOKEN_STORAGE_KEY = 'mintmarks_gmail_access_token'
@@ -39,28 +39,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Google OAuth login
-  const googleLogin = useGoogleLogin({
-    onSuccess: (tokenResponse) => {
-      console.log('Google login successful')
-      const token = tokenResponse.access_token
-      const expiresIn = tokenResponse.expires_in || 3600
 
-      // Calculate expiry time
-      const expireTime = Date.now() + (expiresIn * 1000) - TOKEN_EXPIRY_BUFFER
 
-      setAccessToken(token)
-      localStorage.setItem(TOKEN_STORAGE_KEY, token)
-      localStorage.setItem(TOKEN_EXPIRE_KEY, expireTime.toString())
-    },
-    onError: () => {
-      console.error('Google login failed')
-    },
-    scope: 'https://www.googleapis.com/auth/gmail.readonly',
-  })
+  // Check for token in URL hash on mount (handling redirect callback)
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash && hash.includes('access_token')) {
+      const params = new URLSearchParams(hash.substring(1)) // remove #
+      const token = params.get('access_token')
+      const expiresIn = params.get('expires_in')
+
+      if (token) {
+        console.log('Token found in URL processing login...')
+        const expiresInSeconds = expiresIn ? parseInt(expiresIn, 10) : 3600
+        const expireTime = Date.now() + (expiresInSeconds * 1000) - TOKEN_EXPIRY_BUFFER
+
+        setAccessToken(token)
+        localStorage.setItem(TOKEN_STORAGE_KEY, token)
+        localStorage.setItem(TOKEN_EXPIRE_KEY, expireTime.toString())
+
+        // Clean URL
+        window.history.replaceState(null, '', window.location.pathname)
+      }
+    }
+  }, [])
 
   const login = () => {
-    googleLogin()
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    if (!clientId) {
+      console.error('Missing VITE_GOOGLE_CLIENT_ID')
+      return
+    }
+
+    const redirectUri = window.location.origin
+    const scope = 'https://www.googleapis.com/auth/gmail.readonly'
+    const responseType = 'token'
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}`
+
+    window.location.href = authUrl
   }
 
   const logout = () => {

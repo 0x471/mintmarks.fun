@@ -121,6 +121,29 @@ const copyWasmPlugin = () => {
   };
 };
 
+// Plugin to force resolve promises modules to mocks
+const forceResolvePromisesPlugin = () => {
+  return {
+    name: 'force-resolve-promises',
+    enforce: 'pre' as const,
+    resolveId(source: string) {
+      if (source === 'fs/promises' || source === 'node:fs/promises') {
+        return resolve(__dirname, 'src/mocks/fs-promises.ts');
+      }
+      if (source === 'stream/promises' || source === 'node:stream/promises') {
+        return resolve(__dirname, 'src/mocks/stream-promises.ts');
+      }
+      if (source === 'stream-browserify/promises') {
+        return resolve(__dirname, 'src/mocks/stream-promises.ts');
+      }
+      if (source.endsWith('/promises')) {
+        return resolve(__dirname, 'src/mocks/generic-promises.ts');
+      }
+      return null;
+    },
+  };
+};
+
 // https://vite.dev/config/
 export default defineConfig({
   test: {
@@ -129,6 +152,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
   },
   plugins: [
+    forceResolvePromisesPlugin(),
     react(),
     copyCircuitPlugin(),
     copyWasmPlugin(),
@@ -153,9 +177,20 @@ export default defineConfig({
     include: ['@zk-email/zkemail-nr'],
   },
   resolve: {
-    alias: {
-      stream: 'stream-browserify',
-    },
+    alias: [
+      { find: 'stream/promises', replacement: resolve(__dirname, 'src/mocks/stream-promises.ts') },
+      { find: 'node:stream/promises', replacement: resolve(__dirname, 'src/mocks/stream-promises.ts') },
+      { find: 'fs/promises', replacement: resolve(__dirname, 'src/mocks/fs-promises.ts') },
+      { find: 'node:fs/promises', replacement: resolve(__dirname, 'src/mocks/fs-promises.ts') },
+      { find: 'timers/promises', replacement: resolve(__dirname, 'src/mocks/generic-promises.ts') },
+      { find: 'node:timers/promises', replacement: resolve(__dirname, 'src/mocks/generic-promises.ts') },
+      { find: 'dns/promises', replacement: resolve(__dirname, 'src/mocks/generic-promises.ts') },
+      { find: 'node:dns/promises', replacement: resolve(__dirname, 'src/mocks/generic-promises.ts') },
+      // Catch-all for other /promises imports
+      { find: /^.*\/promises$/, replacement: resolve(__dirname, 'src/mocks/generic-promises.ts') },
+      // Fix for stream/promises resolving to stream-browserify/promises
+      { find: 'stream-browserify/promises', replacement: resolve(__dirname, 'src/mocks/stream-promises.ts') },
+    ],
   },
   build: {
     target: 'esnext',
