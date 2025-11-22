@@ -31,15 +31,17 @@ export function WalletCreationPrompt({
   const { isSignedIn } = useIsSignedIn()
   const { evmAddress } = useEvmAddress()
 
-  // ✅ Best Practice: Hook'ların kendi loading state'lerini kullanın
-  const { signInWithEmail, loading: emailLoading } = useSignInWithEmail()
-  const { verifyEmailOTP, loading: otpLoading } = useVerifyEmailOTP()
+  // ⚠️ Note: Hook'lar loading state döndürmüyor, manuel state kullanıyoruz
+  const { signInWithEmail } = useSignInWithEmail()
+  const { verifyEmailOTP } = useVerifyEmailOTP()
 
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
   const [flowId, setFlowId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [step, setStep] = useState<'email' | 'otp' | 'success'>('email')
+  const [emailLoading, setEmailLoading] = useState(false)
+  const [otpLoading, setOtpLoading] = useState(false)
 
   // Debug: Log SDK initialization status
   useEffect(() => {
@@ -189,6 +191,7 @@ export function WalletCreationPrompt({
               }
 
               setError(null)
+              setEmailLoading(true)
               try {
                 console.log('🚀 Starting wallet creation flow for email:', email)
                 const result = await signInWithEmail({ email })
@@ -333,6 +336,7 @@ export function WalletCreationPrompt({
               }
 
               setError(null)
+              setOtpLoading(true)
               try {
                 console.log('🔐 Verifying OTP, flowId:', flowId)
                 const { user, isNewUser } = await verifyEmailOTP({
@@ -346,7 +350,7 @@ export function WalletCreationPrompt({
                   isNewUser,
                 }
 
-                if (user.evmAccounts?.length > 0) {
+                if (user.evmAccounts && user.evmAccounts.length > 0) {
                   logData.eoaAddress = user.evmAccounts[0]
                   console.log('✅ User EVM address (EOA):', user.evmAccounts[0])
                 } else {
@@ -370,6 +374,8 @@ export function WalletCreationPrompt({
                 } else {
                   setError(errorMessage)
                 }
+              } finally {
+                setOtpLoading(false)
               }
             }}
             style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
