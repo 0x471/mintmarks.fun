@@ -1,6 +1,20 @@
+import { emailFilterConfig, EmailSource } from '../config/emailFilters'
 import type { GmailSearchResponse, GmailMessageResponse, GmailMessageDetail } from '../types/gmail'
 
 const GMAIL_API_BASE = 'https://gmail.googleapis.com/gmail/v1/users/me'
+
+// Helper to determine the source of an email based on the 'from' address
+// TODO: Move this to a shared utility file (e.g., src/lib/utils.ts)
+const getEmailSource = (email: GmailMessageDetail): EmailSource | 'other' => {
+  const from = email.from.toLowerCase()
+  for (const source in emailFilterConfig) {
+    const config = emailFilterConfig[source as EmailSource]
+    if (config.apiQuery.domains.some(domain => from.includes(domain))) {
+      return source as EmailSource
+    }
+  }
+  return 'other'
+}
 
 export function isTokenExpiredError(status: number): boolean {
   return status === 401
@@ -178,5 +192,47 @@ export async function getEmailRaw(accessToken: string, messageId: string): Promi
       throw error
     }
     throw new Error(`Failed to fetch raw email: ${error}`)
+  }
+}
+
+// Search for Luma and Substack confirmation emails
+export async function searchLumaEmails(
+  accessToken: string,
+  pageToken?: string,
+  pageSize: number = 30
+): Promise<EmailSearchResult> {
+  
+  // Build the query dynamically from the config
+  const allDomains = Object.values(emailFilterConfig).flatMap(config => config.apiQuery.domains);
+  const allKeywords = Object.values(emailFilterConfig).flatMap(config => config.apiQuery.keywords);
+  const uniqueDomains = [...new Set(allDomains)];
+  const uniqueKeywords = [...new Set(allKeywords)];
+  
+  const query = `from:(${uniqueDomains.join(' OR ')}) (${uniqueKeywords.join(' OR ')})`;
+
+  const searchResult = await searchEmails(accessToken, query, pageToken, pageSize)
+  const emailDetails = searchResult.emails
+
+  // Filter emails based on the processing rules in the config
+  const filtered = emailDetails.filter(email => {
+    const source = getEmailSource(email);
+    if (source === 'other') {
+      return false; // Should not happen with the Gmail query, but as a safeguard
+    }
+
+    const config = emailFilterConfig[source];
+    const subject = email.subject.toLowerCase();
+    const snippet = email.snippet.toLowerCase();
+    const combined = `${subject} ${snippet}`;
+
+    const hasIncludeKeyword = config.processing.include.some(keyword => combined.includes(keyword));
+    const hasExcludeKeyword = config.processing.exclude.some(keyword => combined.includes(keyword));
+
+    return hasIncludeKeyword && !hasExcludeKeyword;
+  })
+
+  return {
+    ...searchResult,
+    emails: filtered,
   }
 }
