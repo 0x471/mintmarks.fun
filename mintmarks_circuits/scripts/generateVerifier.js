@@ -1,5 +1,4 @@
 // Generate Solidity verifier contract from compiled Noir circuit
-// Uses UltraHonk backend via @aztec/bb.js v0.84.0 (compatible with Nargo 1.0.0-beta.5)
 
 import fs from 'fs';
 import path from 'path';
@@ -10,13 +9,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function generateVerifier() {
   console.log('=== Mintmarks Solidity Verifier Generator ===\n');
-
-  // Paths
   const circuitPath = path.join(__dirname, '../target/mintmarks_circuits.json');
   const outputDir = path.join(__dirname, '../contract');
   const outputPath = path.join(outputDir, 'UltraHonkVerifier.sol');
 
-  // Validate circuit exists
   if (!fs.existsSync(circuitPath)) {
     console.error('[ERROR]: Circuit not found!');
     console.error(`Expected: ${circuitPath}`);
@@ -24,33 +20,27 @@ async function generateVerifier() {
     process.exit(1);
   }
 
-  // Load circuit
   const circuit = JSON.parse(fs.readFileSync(circuitPath, 'utf-8'));
   const circuitSize = (fs.statSync(circuitPath).size / 1024 / 1024).toFixed(2);
   console.log(`Circuit loaded: ${circuitPath}`);
   console.log(`Circuit size: ${circuitSize} MB`);
   console.log(`Noir version: ${circuit.noir_version}\n`);
 
-  // Initialize UltraHonk backend (modern, optimized proving system)
   console.log('Initializing UltraHonk backend...');
   const backend = new UltraHonkBackend(circuit.bytecode);
 
   try {
-    // Generate Solidity verifier
     console.log('Generating Solidity verifier contract...\n');
     const startTime = Date.now();
     const contract = await backend.getSolidityVerifier();
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
 
-    // Create output directory
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    // Write to file
     fs.writeFileSync(outputPath, contract);
 
-    // Stats
     const contractSize = (contract.length / 1024).toFixed(2);
     console.log(`Verifier contract generated in ${elapsed}s`);
     console.log(`Output: ${outputPath}`);
