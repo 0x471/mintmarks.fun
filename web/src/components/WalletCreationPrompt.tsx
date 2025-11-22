@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
-import { 
-  useSignInWithEmail, 
+import {
+  useSignInWithEmail,
   useVerifyEmailOTP,
-  useCurrentUser,
   useIsSignedIn,
   useEvmAddress,
-  useIsInitialized 
+  useIsInitialized
 } from '@coinbase/cdp-hooks'
 import { getCurrentUser } from '@coinbase/cdp-core'
 import { useAuth } from '../contexts/AuthContext'
@@ -13,7 +12,10 @@ import { useAuth } from '../contexts/AuthContext'
 /**
  * Wallet Oluşturma Prompt Component
  * 
- * Kullanıcıya wallet oluşturma seçeneği sunar.
+ * Kullanıcıya EOA (Externally Owned Account) wallet oluşturma seçeneği sunar.
+ * 
+ * ⚠️ Note: We only use EOA wallets, not Smart Contract wallets or Solana wallets.
+ * 
  * İki mod destekler:
  * 1. Otomatik: Kullanıcı login olduğunda otomatik wallet oluştur
  * 2. Manuel: Kullanıcı butona tıklayınca wallet oluştur
@@ -26,19 +28,29 @@ export function WalletCreationPrompt({
   // ✅ Best Practice: SDK initialize kontrolü
   const { isInitialized } = useIsInitialized()
   const { accessToken } = useAuth() // Gmail OAuth token
-  const { currentUser } = useCurrentUser()
   const { isSignedIn } = useIsSignedIn()
   const { evmAddress } = useEvmAddress()
-  
+
   // ✅ Best Practice: Hook'ların kendi loading state'lerini kullanın
   const { signInWithEmail, loading: emailLoading } = useSignInWithEmail()
   const { verifyEmailOTP, loading: otpLoading } = useVerifyEmailOTP()
-  
+
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
   const [flowId, setFlowId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [step, setStep] = useState<'email' | 'otp' | 'success'>('email')
+
+  // Debug: Log SDK initialization status
+  useEffect(() => {
+    console.log('🔍 WalletCreationPrompt Debug:', {
+      isInitialized,
+      isSignedIn,
+      evmAddress,
+      hasAccessToken: !!accessToken,
+      projectId: import.meta.env.VITE_CDP_PROJECT_ID ? 'Set' : 'Missing',
+    })
+  }, [isInitialized, isSignedIn, evmAddress, accessToken])
 
   // ✅ Best Practice: SDK initialize olana kadar render etme
   if (!isInitialized) {
@@ -162,7 +174,12 @@ export function WalletCreationPrompt({
           <form
             onSubmit={async (e) => {
               e.preventDefault()
-              if (!email) return
+              
+              // ✅ Best Practice: Form validation
+              if (!email || !email.includes('@')) {
+                setError('Please enter a valid email address.')
+                return
+              }
 
               // ✅ Best Practice: Authentication flow başlatmadan önce kontrol et
               const user = await getCurrentUser()
@@ -173,19 +190,25 @@ export function WalletCreationPrompt({
 
               setError(null)
               try {
+                console.log('🚀 Starting wallet creation flow for email:', email)
                 const result = await signInWithEmail({ email })
+                console.log('✅ OTP sent successfully, flowId:', result.flowId)
                 setFlowId(result.flowId)
                 setStep('otp')
-                console.log('✅ OTP sent to email:', email)
               } catch (err) {
                 // ✅ Best Practice: Detaylı error handling
-                const errorMessage = err instanceof Error 
-                  ? err.message 
+                console.error('❌ Wallet creation error:', err)
+                const errorMessage = err instanceof Error
+                  ? err.message
                   : 'Failed to send verification code'
-                
+
                 // "User is already authenticated" hatasını özel olarak handle et
                 if (errorMessage.includes('already authenticated')) {
                   setError('You are already signed in. Please refresh the page.')
+                } else if (errorMessage.includes('project') || errorMessage.includes('Project ID')) {
+                  setError('CDP Project ID is missing or invalid. Please check your .env file.')
+                } else if (errorMessage.includes('domain') || errorMessage.includes('CORS')) {
+                  setError('Domain not authorized. Please add this domain to CDP Portal.')
                 } else {
                   setError(errorMessage)
                 }
@@ -297,32 +320,53 @@ export function WalletCreationPrompt({
           <form
             onSubmit={async (e) => {
               e.preventDefault()
-              if (!flowId || !otp) return
+              
+              // ✅ Best Practice: Form validation
+              if (!flowId) {
+                setError('Authentication flow not found. Please start over.')
+                return
+              }
+              
+              if (!otp || otp.length !== 6) {
+                setError('Please enter a valid 6-digit verification code.')
+                return
+              }
 
               setError(null)
               try {
-                const { user, isNewUser } = await verifyEmailOTP({ 
-                  flowId, 
-                  otp 
+                console.log('🔐 Verifying OTP, flowId:', flowId)
+                const { user, isNewUser } = await verifyEmailOTP({
+                  flowId,
+                  otp
                 })
-                
-                console.log('✅ Wallet created successfully!', {
+
+                // ✅ Best Practice: EOA wallet checking (we only use EOA wallets)
+                const logData: Record<string, unknown> = {
                   userId: user.userId,
-                  evmAccounts: user.evmAccounts,
-                  eoaAddress: user.evmAccounts?.[0], // ✅ EOA address
-                  evmSmartAccounts: user.evmSmartAccounts, // Smart accounts (if any)
                   isNewUser,
-                })
+                }
+
+                if (user.evmAccounts?.length > 0) {
+                  logData.eoaAddress = user.evmAccounts[0]
+                  console.log('✅ User EVM address (EOA):', user.evmAccounts[0])
+                } else {
+                  console.warn('⚠️ No EOA wallet found after verification')
+                }
+
+                console.log('✅ EOA Wallet created successfully!', logData)
                 setStep('success')
               } catch (err) {
                 // ✅ Best Practice: Detaylı error handling
-                const errorMessage = err instanceof Error 
-                  ? err.message 
+                console.error('❌ OTP verification error:', err)
+                const errorMessage = err instanceof Error
+                  ? err.message
                   : 'Invalid verification code'
-                
+
                 // OTP hatalarını özel olarak handle et
                 if (errorMessage.includes('invalid') || errorMessage.includes('expired')) {
                   setError('Invalid or expired verification code. Please try again.')
+                } else if (errorMessage.includes('project') || errorMessage.includes('Project ID')) {
+                  setError('CDP Project ID is missing or invalid. Please check your .env file.')
                 } else {
                   setError(errorMessage)
                 }
