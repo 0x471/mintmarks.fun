@@ -1,11 +1,24 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { CDPReactProvider, type Config } from '@coinbase/cdp-react';
 import { AuthProvider } from './contexts/AuthContext';
 import './index.css';
 import App from './App.tsx';
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const cdpProjectId = import.meta.env.VITE_CDP_PROJECT_ID || 'test-project-12345';
+const cdpAppName = import.meta.env.VITE_CDP_APP_NAME || 'mintmarks';
+
+// CDP Configuration
+const cdpConfig: Config = {
+  projectId: cdpProjectId,
+  appName: cdpAppName,
+  appLogoUrl: 'https://via.placeholder.com/64',
+  ethereum: {
+    createOnLogin: 'eoa' as const, // EOA oluşturma ayarı
+  },
+};
 
 const ErrorMessage = () => (
   <div style={{
@@ -34,9 +47,11 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {googleClientId ? (
       <GoogleOAuthProvider clientId={googleClientId}>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
+        <CDPReactProvider config={cdpConfig}>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </CDPReactProvider>
       </GoogleOAuthProvider>
     ) : (
       <ErrorMessage />

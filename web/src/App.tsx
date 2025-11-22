@@ -4,6 +4,8 @@ import { useAuth } from './contexts/AuthContext';
 import { getEmailRaw, TokenExpiredError } from './services/gmail';
 import { EmailList } from './components/EmailList';
 import { AuthStatus } from './components/AuthStatus';
+import { WalletCreationPrompt } from './components/WalletCreationPrompt';
+import { useWalletStatus } from './hooks/useWalletStatus';
 import './App.css';
 import { Buffer } from 'buffer';
 
@@ -24,6 +26,7 @@ async function generateProofFromBuffer(
 
 function App() {
   const { accessToken, login, isAuthenticated, handleTokenExpiration } = useAuth();
+  const walletStatus = useWalletStatus();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ProofResult | null>(null);
@@ -142,7 +145,13 @@ function App() {
           </p>
         </header>
 
-        {/* View mode toggle */}
+        {/* Wallet Creation Prompt - Show when user is logged in but has no wallet */}
+        {isAuthenticated && accessToken && walletStatus.needsWallet && !walletStatus.isLoading && (
+          <div style={{ marginBottom: '2rem', maxWidth: '600px', margin: '0 auto 2rem auto' }}>
+            <WalletCreationPrompt autoCreate={false} />
+          </div>
+        )}
+
         {/* View mode toggle */}
         <div className="view-toggle">
           <button
