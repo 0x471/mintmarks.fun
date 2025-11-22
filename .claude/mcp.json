@@ -1,0 +1,18 @@
+{
+    "mcpServers": {
+      "Figma": {
+        "url": "https://mcp.figma.com/mcp",
+        "headers": {}
+      },
+      "context7": {
+        "command": "npx -y @upstash/context7-mcp",
+        "env": {},
+        "args": []
+      },
+      "Coinbase Developer": {
+        "name": "Coinbase Developer",
+        "url": "https://docs.cdp.coinbase.com/mcp",
+        "headers": {}
+      }
+    }
+  }
