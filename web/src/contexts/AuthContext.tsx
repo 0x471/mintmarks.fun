@@ -72,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const redirectUri = window.location.origin
-    const scope = 'https://www.googleapis.com/auth/gmail.readonly'
+    const scope = 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile'
     const responseType = 'token'
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}`
 

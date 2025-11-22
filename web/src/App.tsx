@@ -3,6 +3,7 @@ import { ProofGenerator, validateEmlFile, type ProofResult } from './lib/proofGe
 import { useAuth } from './contexts/AuthContext';
 import { getEmailRaw, TokenExpiredError } from './services/gmail';
 import { EmailList } from './components/EmailList';
+import { AuthStatus } from './components/AuthStatus';
 import './App.css';
 import { Buffer } from 'buffer';
 
@@ -127,6 +128,7 @@ function App() {
 
   return (
     <div className="app">
+      <AuthStatus />
       <div className="container">
         <header>
           <h1>mintmarks.fun</h1>
