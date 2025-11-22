@@ -109,12 +109,13 @@ contract MintmarksNFTTest is Test {
         MintmarksNFT.EventCollection memory collection = nft.getCollection(tokenId);
         assertEq(collection.tokenId, tokenId);
         assertEq(collection.eventName, "Test Event");
+        assertEq(collection.pubkeyHash, mockPublicInputs[0]);
         assertEq(collection.totalMinted, 1);
         assertEq(collection.creator, user1);
         assertGt(collection.createdAt, 0);
 
         assertTrue(nft.isNullifierUsed(nullifier));
-        assertTrue(nft.collectionExists("Test Event"));
+        assertTrue(nft.collectionExists("Test Event", mockPublicInputs[0]));
 
         vm.stopPrank();
     }
@@ -230,16 +231,23 @@ contract MintmarksNFTTest is Test {
         assertEq(owner.balance, ownerBalanceBefore + contractBalance);
     }
 
-    function testGetTokenIdByEvent() public {
+    function testGetTokenIdByCollection() public {
         vm.deal(user1, 1 ether);
         vm.prank(user1);
         uint256 tokenId = nft.mint{value: 0.011 ether}(mockProof, mockPublicInputs);
 
-        uint256 queriedTokenId = nft.getTokenIdByEvent("Test Event");
+        bytes32 pubkeyHash = mockPublicInputs[0];
+        uint256 queriedTokenId = nft.getTokenIdByCollection("Test Event", pubkeyHash);
         assertEq(queriedTokenId, tokenId);
 
-        uint256 nonExistentTokenId = nft.getTokenIdByEvent("Non Existent Event");
+        // Non-existent event name returns 0
+        uint256 nonExistentTokenId = nft.getTokenIdByCollection("Non Existent Event", pubkeyHash);
         assertEq(nonExistentTokenId, 0);
+
+        // Same event name, different pubkey = different collection
+        bytes32 differentPubkey = bytes32(uint256(0x999));
+        uint256 differentCollectionId = nft.getTokenIdByCollection("Test Event", differentPubkey);
+        assertEq(differentCollectionId, 0);
     }
 
     function testMultipleCollections() public {
@@ -272,5 +280,36 @@ contract MintmarksNFTTest is Test {
 
         assertEq(col1.eventName, "Test Event");
         assertEq(col2.eventName, "Another Event");
+    }
+
+    function testSameEventNameDifferentDomains() public {
+        // Same event name from domain 1 (pubkey 0x123)
+        vm.deal(user1, 1 ether);
+        vm.prank(user1);
+        uint256 tokenId1 = nft.mint{value: 0.011 ether}(mockProof, mockPublicInputs);
+
+        // Same event name from domain 2 (different pubkey 0x456)
+        mockPublicInputs[0] = bytes32(uint256(0x456)); // Different pubkey (different domain)
+        mockPublicInputs[1] = bytes32(uint256(0x789)); // Different nullifier
+
+        vm.deal(user2, 1 ether);
+        vm.prank(user2);
+        uint256 tokenId2 = nft.mint{value: 0.011 ether}(mockProof, mockPublicInputs);
+
+        // Should create TWO different collections
+        assertEq(tokenId1, 1);
+        assertEq(tokenId2, 2);
+        assertEq(nft.nextTokenId(), 3);
+
+        MintmarksNFT.EventCollection memory col1 = nft.getCollection(tokenId1);
+        MintmarksNFT.EventCollection memory col2 = nft.getCollection(tokenId2);
+
+        // Same event name but different pubkeys
+        assertEq(col1.eventName, "Test Event");
+        assertEq(col2.eventName, "Test Event");
+        assertEq(col1.pubkeyHash, bytes32(uint256(0x123)));
+        assertEq(col2.pubkeyHash, bytes32(uint256(0x456)));
+
+        // Prevents collision attack: same name from different domains = separate collections
     }
 }

@@ -42,8 +42,8 @@ contract MintmarksNFT is ERC1155, Ownable {
     /// @notice Next token ID to assign
     uint256 public nextTokenId = 1;
 
-    /// @notice Mapping from event name hash to token ID
-    mapping(bytes32 => uint256) public eventNameToTokenId;
+    /// @notice Mapping from collection ID (hash of event name + pubkey) to token ID
+    mapping(bytes32 => uint256) public collectionIdToTokenId;
 
     /// @notice Mapping from token ID to collection data
     mapping(uint256 => EventCollection) public collections;
@@ -57,6 +57,7 @@ contract MintmarksNFT is ERC1155, Ownable {
      * @notice Event collection metadata
      * @param tokenId The ERC1155 token ID
      * @param eventName The event name extracted from email
+     * @param pubkeyHash Hash of email domain's DKIM public key (identifies sender)
      * @param totalMinted Number of NFTs minted for this event
      * @param createdAt Blockchain timestamp when collection was created
      * @param creator Address of first minter who paid creation fee
@@ -64,6 +65,7 @@ contract MintmarksNFT is ERC1155, Ownable {
     struct EventCollection {
         uint256 tokenId;
         string eventName;
+        bytes32 pubkeyHash;
         uint256 totalMinted;
         uint256 createdAt;
         address creator;
@@ -120,9 +122,13 @@ contract MintmarksNFT is ERC1155, Ownable {
         }
 
         // Extract data from public inputs
-        // publicInputs[0] = pubkeyHash (not used on-chain)
+        bytes32 pubkeyHash = publicInputs[0];
         bytes32 emailNullifier = publicInputs[1];
         string memory eventName = _extractEventName(publicInputs);
+
+        // Create unique collection ID from event name + pubkey hash
+        // This prevents collisions: same event name from different domains = different collections
+        bytes32 collectionId = keccak256(abi.encodePacked(eventName, pubkeyHash));
 
         // Check nullifier not used
         if (usedNullifiers[emailNullifier]) {
@@ -135,15 +141,14 @@ contract MintmarksNFT is ERC1155, Ownable {
         }
 
         // Get or create collection
-        bytes32 eventHash = keccak256(bytes(eventName));
-        tokenId = eventNameToTokenId[eventHash];
+        tokenId = collectionIdToTokenId[collectionId];
 
         if (tokenId == 0) {
             // New collection - charge creation fee + minting fee
             if (msg.value < collectionCreationFee + mintingFee) {
                 revert InsufficientFee();
             }
-            tokenId = _createCollection(eventName, msg.sender);
+            tokenId = _createCollection(eventName, pubkeyHash, collectionId, msg.sender);
         } else {
             // Existing collection - charge minting fee only
             if (msg.value < mintingFee) {
@@ -164,20 +169,24 @@ contract MintmarksNFT is ERC1155, Ownable {
     /**
      * @notice Create new event collection
      * @param eventName Name of the event
+     * @param pubkeyHash Hash of DKIM public key (identifies email sender domain)
+     * @param collectionId Unique collection identifier (hash of name + pubkey)
      * @param creator Address of first minter
      * @return tokenId New token ID
      */
     function _createCollection(
         string memory eventName,
+        bytes32 pubkeyHash,
+        bytes32 collectionId,
         address creator
     ) internal returns (uint256 tokenId) {
         tokenId = nextTokenId++;
-        bytes32 eventHash = keccak256(bytes(eventName));
 
-        eventNameToTokenId[eventHash] = tokenId;
+        collectionIdToTokenId[collectionId] = tokenId;
         collections[tokenId] = EventCollection({
             tokenId: tokenId,
             eventName: eventName,
+            pubkeyHash: pubkeyHash,
             totalMinted: 1,
             createdAt: block.timestamp,
             creator: creator
@@ -223,13 +232,17 @@ contract MintmarksNFT is ERC1155, Ownable {
     }
 
     /**
-     * @notice Get token ID for an event name
+     * @notice Get token ID for an event collection
      * @param eventName Name of the event
+     * @param pubkeyHash Hash of DKIM public key
      * @return Token ID (0 if collection doesn't exist)
      */
-    function getTokenIdByEvent(string memory eventName) external view returns (uint256) {
-        bytes32 eventHash = keccak256(bytes(eventName));
-        return eventNameToTokenId[eventHash];
+    function getTokenIdByCollection(
+        string memory eventName,
+        bytes32 pubkeyHash
+    ) external view returns (uint256) {
+        bytes32 collectionId = keccak256(abi.encodePacked(eventName, pubkeyHash));
+        return collectionIdToTokenId[collectionId];
     }
 
     /**
@@ -242,13 +255,17 @@ contract MintmarksNFT is ERC1155, Ownable {
     }
 
     /**
-     * @notice Check if collection exists for event name
+     * @notice Check if collection exists for event + pubkey combination
      * @param eventName Name of the event
+     * @param pubkeyHash Hash of DKIM public key
      * @return True if collection exists
      */
-    function collectionExists(string memory eventName) external view returns (bool) {
-        bytes32 eventHash = keccak256(bytes(eventName));
-        return eventNameToTokenId[eventHash] != 0;
+    function collectionExists(
+        string memory eventName,
+        bytes32 pubkeyHash
+    ) external view returns (bool) {
+        bytes32 collectionId = keccak256(abi.encodePacked(eventName, pubkeyHash));
+        return collectionIdToTokenId[collectionId] != 0;
     }
 
     // ============ Admin Functions ============

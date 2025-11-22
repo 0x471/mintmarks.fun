@@ -86,10 +86,13 @@ contract IntegrationTest is Test {
         // Verify mint succeeded
         assertEq(nft.balanceOf(user, tokenId), 1);
         assertTrue(nft.isNullifierUsed(nullifier));
-        assertTrue(nft.collectionExists(eventName));
+
+        bytes32 pubkeyHash = publicInputs[0];
+        assertTrue(nft.collectionExists(eventName, pubkeyHash));
 
         MintmarksNFT.EventCollection memory collection = nft.getCollection(tokenId);
         assertEq(collection.eventName, eventName);
+        assertEq(collection.pubkeyHash, pubkeyHash);
         assertEq(collection.totalMinted, 1);
         assertEq(collection.creator, user);
 
