@@ -123,7 +123,10 @@
     --page-text-muted: oklch(0.55 0.02 246);
     --page-badge-bg: rgba(255, 255, 255, 0.85);
     --page-badge-border: rgba(255, 255, 255, 0.5);
+    --page-badge-icon-bg: rgba(99, 150, 244, 0.1);
+    --page-badge-icon-text: oklch(0.6396 0.1928 262.1643);
     --page-border-color: rgba(255, 255, 255, 0.4);
+    --Controls-Selected: oklch(0.6396 0.1928 262.1643);
     --page-content-bg: rgba(247, 249, 252, 0.8);
     --page-content-border: rgba(240, 244, 249, 0.5);
     --page-content-blend: normal;
@@ -211,7 +214,10 @@
     --page-text-muted: oklch(0.68 0.02 246);
     --page-badge-bg: rgba(15, 27, 54, 0.95);
     --page-badge-border: rgba(99, 150, 244, 0.4);
+    --page-badge-icon-bg: rgba(99, 150, 244, 0.2);
+    --page-badge-icon-text: oklch(0.9 0.02 246);
     --page-border-color: rgba(99, 150, 244, 0.3);
+    --Controls-Selected: oklch(1.0000 0 0);
     --page-content-bg: rgba(15, 27, 54, 0.85);
     --page-content-border: rgba(99, 150, 244, 0.3);
     --page-content-blend: normal;

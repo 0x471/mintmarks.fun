@@ -59,9 +59,9 @@ async function getEmailMetadata(
 
     // Extract information from headers
     const headers = data.payload.headers
-    const subject = headers.find(h => h.name === 'Subject')?.value || '(No subject)'
-    const from = headers.find(h => h.name === 'From')?.value || ''
-    const date = headers.find(h => h.name === 'Date')?.value || ''
+    const subject = headers.find((h) => h.name === 'Subject')?.value || '(No subject)'
+    const from = headers.find((h) => h.name === 'From')?.value || ''
+    const date = headers.find((h) => h.name === 'Date')?.value || ''
 
     return {
       id: data.id,

@@ -1,33 +1,35 @@
-export interface GmailMessage {
-  id: string
-  threadId: string
+export interface GmailMessageDetail {
+  id: string;
+  subject: string;
+  date: string;
+  from: string;
+  snippet: string;
 }
 
-export interface GmailMessageDetail {
-  id: string
-  subject: string
-  date: string
-  from: string
-  snippet: string
+export interface GmailMessage {
+  id: string;
+  threadId: string;
 }
 
 export interface GmailSearchResponse {
-  messages?: GmailMessage[]
-  nextPageToken?: string
-  resultSizeEstimate?: number
+  messages: GmailMessage[];
+  nextPageToken?: string;
+  resultSizeEstimate: number;
+}
+
+export interface GmailHeader {
+  name: string;
+  value: string;
 }
 
 export interface GmailMessageResponse {
-  id: string
-  threadId: string
-  labelIds: string[]
-  snippet: string
+  id: string;
+  threadId: string;
+  labelIds: string[];
+  snippet: string;
   payload: {
-    headers: Array<{
-      name: string
-      value: string
-    }>
-  }
-  internalDate: string
-  raw?: string
+    headers: GmailHeader[];
+  };
+  internalDate: string;
+  raw?: string;
 }
