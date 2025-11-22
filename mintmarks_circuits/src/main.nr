@@ -5,7 +5,7 @@ use zkemail::{
 };
 
 // Constants
-global MAX_EMAIL_HEADER_LENGTH: u32 = 1024; // DKIM-signed headers
+global MAX_EMAIL_HEADER_LENGTH: u32 = 2048; // DKIM-signed headers
 global MAX_DATE_LENGTH: u32 = 64;           // Date format (RFC2822) date format
 global MAX_SUBJECT_LENGTH: u32 = 256;       // Event name in subject line
 
