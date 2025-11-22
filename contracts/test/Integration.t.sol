@@ -2,7 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {Test, console} from "forge-std/Test.sol";
-import {MintmarksNFT} from "../src/MintmarksNFT.sol";
+import {Mintmarks} from "../src/Mintmarks.sol";
 import "@verifier/UltraHonkVerifier.sol";
 
 /**
@@ -11,7 +11,7 @@ import "@verifier/UltraHonkVerifier.sol";
  * @dev Loads proof.bin and public_inputs.json from mintmarks_circuits/target/
  */
 contract IntegrationTest is Test {
-    MintmarksNFT public nft;
+    Mintmarks public mintmarks;
     HonkVerifier public verifier;
 
     address public owner = address(1);
@@ -27,12 +27,12 @@ contract IntegrationTest is Test {
         verifier = new HonkVerifier();
         console.log("Deployed UltraHonkVerifier at:", address(verifier));
 
-        // Deploy NFT contract
-        nft = new MintmarksNFT(
+        // Deploy Mintmarks contract
+        mintmarks = new Mintmarks(
             address(verifier),
             "https://mintmarks.fun/api/metadata/{id}"
         );
-        console.log("Deployed MintmarksNFT at:", address(nft));
+        console.log("Deployed Mintmarks at:", address(mintmarks));
 
         vm.stopPrank();
     }
@@ -70,7 +70,7 @@ contract IntegrationTest is Test {
         string memory eventName = _extractEventName(publicInputs);
         bytes32 nullifier = publicInputs[1];
 
-        console.log("\nTesting NFT minting with real proof...");
+        console.log("\nTesting token minting with real proof...");
         console.log("Event:", eventName);
         console.log("Nullifier:", vm.toString(nullifier));
 
@@ -78,25 +78,25 @@ contract IntegrationTest is Test {
         vm.deal(user, 1 ether);
         vm.startPrank(user);
 
-        // Mint NFT with real proof
-        uint256 tokenId = nft.mint{value: 0.011 ether}(proof, publicInputs);
+        // Mint token with real proof
+        uint256 tokenId = mintmarks.mint{value: 0.011 ether}(proof, publicInputs);
 
-        console.log("Minted NFT with tokenId:", tokenId);
+        console.log("Minted token with tokenId:", tokenId);
 
         // Verify mint succeeded
-        assertEq(nft.balanceOf(user, tokenId), 1);
-        assertTrue(nft.isNullifierUsed(nullifier));
+        assertEq(mintmarks.balanceOf(user, tokenId), 1);
+        assertTrue(mintmarks.isNullifierUsed(nullifier));
 
         bytes32 pubkeyHash = publicInputs[0];
-        assertTrue(nft.collectionExists(eventName, pubkeyHash));
+        assertTrue(mintmarks.collectionExists(eventName, pubkeyHash));
 
-        MintmarksNFT.EventCollection memory collection = nft.getCollection(tokenId);
+        Mintmarks.EventCollection memory collection = mintmarks.getCollection(tokenId);
         assertEq(collection.eventName, eventName);
         assertEq(collection.pubkeyHash, pubkeyHash);
         assertEq(collection.totalMinted, 1);
         assertEq(collection.creator, user);
 
-        console.log("NFT minted successfully!");
+        console.log("Token minted successfully!");
         console.log("Collection created at:", collection.createdAt);
 
         vm.stopPrank();
@@ -111,11 +111,11 @@ contract IntegrationTest is Test {
         // First mint succeeds
         vm.deal(user, 1 ether);
         vm.startPrank(user);
-        nft.mint{value: 0.011 ether}(proof, publicInputs);
+        mintmarks.mint{value: 0.011 ether}(proof, publicInputs);
 
         // Second mint with same nullifier fails
-        vm.expectRevert(MintmarksNFT.AlreadyClaimed.selector);
-        nft.mint{value: 0.011 ether}(proof, publicInputs);
+        vm.expectRevert(Mintmarks.AlreadyClaimed.selector);
+        mintmarks.mint{value: 0.011 ether}(proof, publicInputs);
 
         vm.stopPrank();
     }
