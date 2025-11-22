@@ -14,3 +14,10 @@ noirup -v 1.0.0-beta.5
 # Check the version
 nargo --version
 ```
+
+## Web
+```bash
+pnpm install
+
+pnpm dev
+```
