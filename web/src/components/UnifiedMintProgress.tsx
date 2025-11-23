@@ -203,23 +203,6 @@ export function UnifiedMintProgress({
 
   return (
     <div className={cn('space-y-4 relative', className)}>
-      {/* Close Button - Modal Corner */}
-      <div className="absolute -top-2 -right-2 z-50">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 rounded-full transition-colors"
-          onClick={onClose}
-          style={{
-            backgroundColor: 'var(--glass-bg-secondary)',
-            borderColor: 'var(--glass-border)',
-            color: 'var(--page-text-muted)'
-          }}
-        >
-          <X className="h-5 w-5" />
-        </Button>
-      </div>
-
       {/* Horizontal Timeline - Top */}
       <div className="flex items-center justify-center gap-2 px-4 py-3 overflow-x-auto no-scrollbar">
         {phaseGroups.map((group, index) => {

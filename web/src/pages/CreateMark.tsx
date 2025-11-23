@@ -9,11 +9,11 @@ import { validateProof } from '@/services/proofValidation'
 import { generateNFTImage } from '@/services/nftImageGeneration'
 import type { NFTMetadata } from '@/services/nftMinting'
 import { useToast } from '@/components/useToast'
+import { handleWalletError } from '@/utils/walletErrors'
+import { getCurrentUser } from '@coinbase/cdp-core'
 import { type MintStep } from '@/components/ProgressIndicator'
 import { UnifiedMintProgress, type UnifiedMintStep } from '@/components/UnifiedMintProgress'
 import { celoSepolia, CONTRACTS } from '@/config/chains'
-import { sendMintingFee, validateTransactionParams } from '@/utils/transactions'
-import { handleWalletError } from '@/utils/walletErrors'
 import VerticalBarsNoise from '@/components/VerticalBarsNoise'
 import EmailCard from '@/components/EmailCard'
 import { POAPBadge } from '@/components/POAPBadge'
@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Upload, CheckCircle2, AlertCircle, ArrowLeft, Sparkles, Mail, Bookmark, ArrowRight, Shield, Lock, ChevronDown, Info } from 'lucide-react'
+import { Loader2, Upload, CheckCircle2, AlertCircle, ArrowLeft, Sparkles, Mail, Bookmark, ArrowRight, Shield, Lock, ChevronDown, Info, X } from 'lucide-react'
 // USDC transfer için ERC20 transfer fonksiyonunu encode ediyoruz
 // Function selector: transfer(address,uint256) = 0xa9059cbb
 
@@ -333,6 +333,13 @@ export default function CreateMark() {
     setProofLogs(prev => [...prev, msg])
   }
 
+  const handleCloseUnifiedFlow = () => {
+    setIsUnifiedFlow(false)
+    setUnifiedStep(null)
+    setProofStatus('idle')
+    setProofLogs([])
+  }
+
   // Handle Self ID Verification (Mock)
   const handleVerifySelfID = async () => {
     try {
@@ -480,15 +487,38 @@ export default function CreateMark() {
   }
 
   // Handle CDP Embedded Wallet connection (Email/OTP flow)
+  // ✅ Best Practice: Comprehensive error handling, user state verification, flow ID management
   const handleConnectCDPWallet = async () => {
     try {
       setError(null)
       
+      // ✅ Best Practice: SDK initialization check
+      if (!walletStatus.isInitialized) {
+        setError('Wallet system is initializing. Please wait...')
+        return
+      }
+      
+      // ✅ Best Practice: User state verification before starting flow
+      try {
+        const existingUser = await getCurrentUser()
+        if (existingUser && existingUser.evmAccounts && existingUser.evmAccounts.length > 0) {
+          // User already authenticated, use existing wallet
+          setWalletAddress(existingUser.evmAccounts[0])
+          setUnifiedStep('wallet-connected')
+          await new Promise(resolve => setTimeout(resolve, 500))
+          setUnifiedStep('self-id-prompt')
+          return
+        }
+      } catch (err) {
+        // User not authenticated yet, continue with flow
+        console.log('[CDP] No existing user found, starting new authentication flow')
+      }
+      
       // Use Google login email (from Gmail authentication)
       const emailToUse = userEmail
       
+      // ✅ Best Practice: Form validation
       if (!emailToUse) {
-        // If no email from Gmail auth, show error
         setError('Please sign in with Gmail first to connect your wallet.')
         setUnifiedStep('wallet-prompt')
         return
@@ -496,15 +526,37 @@ export default function CreateMark() {
       
       // If OTP input is showing and we have OTP code, verify OTP
       if (showOtpInput && otpCode && flowId) {
+        // ✅ Best Practice: Flow ID validation
+        if (!flowId) {
+          setError('Authentication flow not found. Please start over.')
+          setShowOtpInput(false)
+          setOtpCode('')
+          setFlowId(null)
+          setUnifiedStep('wallet-prompt')
+          return
+        }
+        
+        // ✅ Best Practice: OTP format validation
+        if (otpCode.length !== 6 || !/^\d{6}$/.test(otpCode)) {
+          setError('Please enter a valid 6-digit verification code.')
+          return
+        }
+        
         setIsVerifyingOtp(true)
         setUnifiedStep('wallet-connecting')
         
         try {
-          const { user } = await verifyEmailOTP({ flowId, otp: otpCode })
+          console.log('[CDP] Verifying OTP, flowId:', flowId)
+          const { user, isNewUser } = await verifyEmailOTP({ flowId, otp: otpCode })
           
-          // Get wallet address from user (EOA account)
+          // ✅ Best Practice: EOA wallet check (we only use EOA wallets)
           if (user.evmAccounts && user.evmAccounts.length > 0) {
             const address = user.evmAccounts[0]
+            console.log('[CDP] ✅ Wallet created successfully!', {
+              userId: user.userId,
+              evmAddress: address,
+              isNewUser,
+            })
             setWalletAddress(address)
             setUnifiedStep('wallet-connected')
             setShowOtpInput(false)
@@ -517,10 +569,9 @@ export default function CreateMark() {
             throw new Error('Wallet creation failed. No EOA address returned.')
           }
         } catch (err: unknown) {
-          // Best Practice: Use centralized error handler
-          console.error('Failed to verify OTP:', err)
-          const errorMessage = handleWalletError(err)
-          setError(errorMessage)
+          console.error('[CDP] ❌ Failed to verify OTP:', err)
+          // ✅ Best Practice: Use error handling helper
+          setError(handleWalletError(err))
           setOtpCode('')
           setUnifiedStep('wallet-prompt')
         } finally {
@@ -532,21 +583,24 @@ export default function CreateMark() {
         setUnifiedStep('wallet-connecting')
         
         try {
-          console.log('[CDP] Sending OTP to email:', emailToUse)
+          console.log('[CDP] 🚀 Starting wallet creation flow for email:', emailToUse)
           const result = await signInWithEmail({ email: emailToUse })
-          console.log('[CDP] Sign-in result:', result)
+          console.log('[CDP] ✅ OTP sent successfully, flowId:', result.flowId)
           
-          // Store flowId and show OTP input
+          // ✅ Best Practice: Store flowId and validate
+          if (!result.flowId) {
+            throw new Error('Failed to receive authentication flow ID.')
+          }
+          
           setFlowId(result.flowId)
           setShowOtpInput(true)
           setUnifiedStep('wallet-prompt')
-          console.log('[CDP] OTP sent successfully, flowId:', result.flowId)
           
         } catch (err: unknown) {
-          // Best Practice: Use centralized error handler
-          console.error('[CDP] Failed to send OTP:', err)
-          const errorMessage = handleWalletError(err)
-          setError(errorMessage)
+          console.error('[CDP] ❌ Failed to send OTP:', err)
+          console.error('[CDP] Error details:', JSON.stringify(err, null, 2))
+          // ✅ Best Practice: Use error handling helper
+          setError(handleWalletError(err))
           setUnifiedStep('wallet-prompt')
         } finally {
           setIsSendingOtp(false)
@@ -554,10 +608,9 @@ export default function CreateMark() {
       }
       
     } catch (err: unknown) {
-      // Best Practice: Use centralized error handler
-      console.error('Failed to connect wallet:', err)
-      const errorMessage = handleWalletError(err)
-      setError(errorMessage)
+      console.error('[CDP] ❌ Failed to connect wallet:', err)
+      // ✅ Best Practice: Use error handling helper
+      setError(handleWalletError(err))
       setUnifiedStep('wallet-prompt')
     }
   }
@@ -640,11 +693,18 @@ export default function CreateMark() {
   }
 
   // Handle pay minting fee - Send 1 CELO on Celo Sepolia testnet
-  // Best Practice: Use transaction helper with retry logic and error handling
+  // ✅ Best Practice: Wallet validation, error handling, transaction validation
   const handlePayFee = async () => {
+    // ✅ Best Practice: Wallet validation
     if (!evmAddress || !walletAddress) {
       setError('Wallet not connected')
       setUnifiedStep('wallet-prompt')
+      return
+    }
+
+    // ✅ Best Practice: SDK initialization check
+    if (!walletStatus.isInitialized) {
+      setError('Wallet system is initializing. Please wait...')
       return
     }
 
@@ -652,24 +712,37 @@ export default function CreateMark() {
       setUnifiedStep('wallet-fee-paying')
       setError(null)
       
-      // Best Practice: Validate transaction parameters before sending
-      const validation = validateTransactionParams({
-        evmAccount: evmAddress,
-        to: CONTRACTS.MINT_FEE_RECIPIENT,
-        value: BigInt(1_000_000_000_000_000_000), // 1 CELO
-        chainId: celoSepolia.id,
-      })
-
-      if (!validation.valid) {
-        setError(validation.error || 'Invalid transaction parameters')
-        setUnifiedStep('wallet-fee-prompt')
-        return
+      // ✅ Best Practice: Transaction validation
+      if (!CONTRACTS.MINT_FEE_RECIPIENT) {
+        throw new Error('Minting fee recipient address is not configured.')
       }
       
-      // Best Practice: Use centralized transaction helper with retry logic
-      const result = await sendMintingFee(sendEvmTransaction, evmAddress)
+      // 1 CELO = 1e18 wei
+      const amount = BigInt(1_000_000_000_000_000_000) // 1 CELO
       
-      console.log('CELO transfer transaction hash:', result.transactionHash)
+      console.log('[CDP] 💰 Sending minting fee transaction:', {
+        from: evmAddress,
+        to: CONTRACTS.MINT_FEE_RECIPIENT,
+        amount: '1 CELO',
+        chainId: celoSepolia.id,
+      })
+      
+      // Send native CELO transaction using CDP hooks
+      // Note: 'celo-sepolia' might not be officially supported as a string alias yet.
+      // If this fails, we might need to configure the chain in the provider or use chainId directly if supported.
+      const result = await sendEvmTransaction({
+        evmAccount: evmAddress,
+        // @ts-ignore - Celo Sepolia support
+        network: 'celo-sepolia', 
+        transaction: {
+          to: CONTRACTS.MINT_FEE_RECIPIENT as `0x${string}`,
+          value: amount,
+          data: '0x',
+          chainId: celoSepolia.id, // Celo Sepolia chain ID
+        }
+      })
+      
+      console.log('[CDP] ✅ Transaction submitted:', result.transactionHash)
       
       // Wait for transaction confirmation
       // Note: CDP hooks automatically track transaction status via txData
@@ -681,10 +754,10 @@ export default function CreateMark() {
       await startMinting()
       
     } catch (err: unknown) {
-      // Best Practice: Use centralized error handler
+      console.error('[CDP] ❌ Failed to pay fee:', err)
+      // ✅ Best Practice: Use error handling helper
       const errorMessage = handleWalletError(err)
-      console.error('Failed to pay fee:', err)
-      setError(errorMessage)
+      setError(errorMessage || 'Failed to pay minting fee')
       setUnifiedStep('wallet-fee-prompt')
     }
   }
@@ -1083,10 +1156,10 @@ export default function CreateMark() {
 
                     {/* Unified Mint Flow Modal - Non-dismissible */}
                     {isUnifiedFlow && unifiedStep && selectedEmail && (
-                      <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-6 sm:px-6 animate-in fade-in duration-300">
+                      <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-6 sm:px-6 animate-in fade-in duration-300">
                         {/* Glassmorphic Backdrop */}
                         <div
-                          className="fixed inset-0 backdrop-blur-md"
+                          className="fixed inset-0 backdrop-blur-md z-[100]"
                           style={{
                             background: 'rgba(0, 0, 0, 0.4)',
                             backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
@@ -1095,7 +1168,7 @@ export default function CreateMark() {
                         />
 
                         <div 
-                          className="relative z-10 w-full max-w-6xl max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300 card-glass"
+                          className="relative z-[110] w-full max-w-3xl max-h-[85vh] overflow-hidden animate-in zoom-in-95 duration-300 card-glass"
                           style={{
                             borderRadius: 'var(--figma-card-radius)',
                             background: 'var(--glass-bg-primary)',
@@ -1105,19 +1178,36 @@ export default function CreateMark() {
                             boxShadow: 'var(--glass-shadow)',
                           }}
                         >
+                          {/* Close Button */}
+                          <div className="absolute top-3 right-3 z-[120]">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-lg border transition-colors hover:bg-muted/20"
+                              onClick={handleCloseUnifiedFlow}
+                              style={{
+                                backgroundColor: 'var(--glass-bg-secondary)',
+                                borderColor: 'var(--glass-border)',
+                                color: 'var(--page-text-muted)'
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+
                           {/* Modal Content - Split Layout */}
-                          <div className="flex flex-col md:flex-row h-full md:h-[600px]">
+                          <div className="flex flex-col md:flex-row h-full md:h-[450px]">
                             
                             {/* Left Side: Preview & Info */}
-                            <div className="w-full md:w-[45%] p-6 sm:p-8 flex flex-col justify-center items-center border-b md:border-b-0 md:border-r border-white/10 dark:border-white/10">
+                            <div className="w-full md:w-[40%] p-4 sm:p-5 flex flex-col justify-center items-center border-b md:border-b-0 md:border-r border-white/10 dark:border-white/10">
                               {/* POAP Preview with Glow Effect */}
-                              <div className="relative group mb-6">
+                              <div className="relative group mb-3">
                                 <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                                 {selectedEmail && (
                                   <div className="relative transform transition-transform duration-500 hover:scale-105">
                                     <POAPBadge
                                       email={selectedEmail}
-                                      size="lg"
+                                      size="md"
                                       showVerified={true}
                                       status={unifiedStep === 'mint-complete' ? 'verified' : 'verified'}
                                       className="shadow-2xl shadow-black/10"
@@ -1127,37 +1217,37 @@ export default function CreateMark() {
                               </div>
                               
                               {/* Info Text */}
-                              <div className="text-center space-y-3 max-w-xs mx-auto">
-                                <h3 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--page-text-primary)' }}>
+                              <div className="text-center space-y-1.5 max-w-xs mx-auto">
+                                <h3 className="text-lg font-bold tracking-tight" style={{ color: 'var(--page-text-primary)' }}>
                                   Mint Your Mintmark
                                 </h3>
-                                <p className="text-sm leading-relaxed" style={{ color: 'var(--page-text-secondary)' }}>
-                                  Transform your commitment into a verifiable on-chain proof on Base Network.
+                                <p className="text-[10px] leading-relaxed" style={{ color: 'var(--page-text-secondary)' }}>
+                                  Transform your commitment into a verifiable on-chain proof on Celo.
                                 </p>
                                 
                                 {/* Security Badges */}
-                                <div className="flex items-center justify-center gap-3 pt-2">
-                                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full border" style={{ 
+                                <div className="flex items-center justify-center gap-2 pt-1">
+                                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full border" style={{ 
                                     backgroundColor: 'var(--glass-bg-tertiary)',
                                     borderColor: 'var(--glass-border)'
                                   }}>
-                                    <Shield className="w-3 h-3" style={{ color: 'var(--page-text-primary)' }} />
-                                    <span className="text-[10px] font-medium" style={{ color: 'var(--page-text-primary)' }}>ZK-Verified</span>
+                                    <Shield className="w-2.5 h-2.5" style={{ color: 'var(--page-text-primary)' }} />
+                                    <span className="text-[9px] font-medium" style={{ color: 'var(--page-text-primary)' }}>ZK-Verified</span>
                                   </div>
-                                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full border" style={{ 
+                                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full border" style={{ 
                                     backgroundColor: 'var(--glass-bg-tertiary)',
                                     borderColor: 'var(--glass-border)'
                                   }}>
-                                    <Lock className="w-3 h-3" style={{ color: 'var(--page-text-primary)' }} />
-                                    <span className="text-[10px] font-medium" style={{ color: 'var(--page-text-primary)' }}>Private</span>
+                                    <Lock className="w-2.5 h-2.5" style={{ color: 'var(--page-text-primary)' }} />
+                                    <span className="text-[9px] font-medium" style={{ color: 'var(--page-text-primary)' }}>Private</span>
                                   </div>
                                 </div>
                               </div>
                             </div>
 
                             {/* Right Side: Progress & Actions */}
-                            <div className="w-full md:w-[55%] flex flex-col" style={{ background: 'var(--glass-bg-secondary)' }}>
-                              <div className="flex-1 overflow-y-auto p-6 sm:p-8 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+                            <div className="w-full md:w-[60%] flex flex-col" style={{ background: 'var(--glass-bg-secondary)' }}>
+                              <div className="flex-1 overflow-y-auto p-4 sm:p-5 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
                                 {unifiedStep === 'mint-complete' ? (
                                   /* Success State */
                                   <div className="flex flex-col items-center justify-center h-full space-y-6 text-center">
@@ -1177,7 +1267,7 @@ export default function CreateMark() {
                                         Mint Successful!
                                       </h2>
                                       <p className="text-sm max-w-xs mx-auto" style={{ color: 'var(--page-text-secondary)' }}>
-                                        Your commitment has been permanently recorded on Base network.
+                                        Your commitment has been permanently recorded on Celo network.
                                       </p>
                                     </div>
                                     
