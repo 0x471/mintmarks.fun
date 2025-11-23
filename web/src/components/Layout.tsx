@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { VerticalBarsNoise } from './VerticalBarsNoise';
 import { Button } from './ui/button';
-import { Moon, Sun, Sparkles, Bookmark, Mail, LogOut, Wallet, Plus, Copy, Check } from 'lucide-react';
+import { Moon, Sun, Sparkles, Bookmark, Mail, LogOut, Wallet, Copy, Check } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../contexts/AuthContext';
 import { useWalletStatus } from '../hooks/useWalletStatus';
@@ -24,6 +24,20 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       setTimeout(() => setCopied(false), 2000);
     }
   };
+
+  // Format ETH balance - show up to 0.005 precision
+  const formatBalance = (balance: number): string => {
+    if (balance === 0) return '0.00 ETH';
+    if (balance < 0.005) {
+      // Show more decimals for small balances
+      return `${balance.toFixed(5)} ETH`;
+    }
+    // Show 2-3 decimals for larger balances
+    return `${balance.toFixed(3)} ETH`;
+  };
+
+  // Mock balance - replace with real balance fetch later
+  const ethBalance = 0.00;
 
   return (
     <div className="min-h-screen w-full bg-[var(--background)] text-[var(--foreground)] font-sans antialiased">
@@ -79,9 +93,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
-                {/* User Profile & Wallet Info - Clean Design */}
+                {/* User Profile & Wallet Info Container */}
                 <div 
-                  className="group relative flex items-center h-9 pl-1 pr-3 rounded-full transition-all duration-300 cursor-default min-w-[140px] sm:min-w-[180px] gap-2"
+                  className="group relative flex items-center h-9 pl-1 pr-2 sm:pr-3 rounded-full transition-all duration-300 min-w-[120px] sm:min-w-[140px] md:min-w-[180px] gap-1.5 sm:gap-2"
                   style={{
                     backgroundColor: 'var(--glass-bg-secondary)',
                     backdropFilter: 'blur(var(--glass-blur)) saturate(180%)',
@@ -97,80 +111,66 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                     e.currentTarget.style.boxShadow = 'var(--glass-shadow)'
                   }}
                 >
-                  {/* Wallet Icon / Plus Action */}
+                  {/* Wallet Icon with Balance */}
                   <div 
-                    className={`group/icon flex items-center justify-center h-7 w-7 rounded-full transition-all duration-300 shrink-0 cursor-pointer hover:scale-105 ${
+                    className={`relative flex items-center gap-1.5 h-7 rounded-full shrink-0 transition-all duration-300 overflow-hidden whitespace-nowrap ${
                       hasWallet && !walletLoading 
                         ? 'bg-green-500/15 text-green-500 dark:text-green-400 shadow-[0_0_12px_rgba(34,197,94,0.25)]' 
                         : 'bg-gray-500/10 text-gray-500 dark:text-gray-400'
-                    }`} 
+                    }`}
+                    style={{
+                      minWidth: '28px',
+                      paddingLeft: hasWallet && !walletLoading ? '0.5rem' : '0',
+                      paddingRight: hasWallet && !walletLoading ? '0.5rem' : '0',
+                    }}
                     title={hasWallet ? 'Wallet Connected' : 'No Wallet'}
                   >
-                    <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover/icon:opacity-0 transition-opacity duration-200">
-                       <Wallet className="h-3.5 w-3.5" />
+                    {/* Wallet Icon */}
+                    <div className="flex items-center justify-center w-7 h-7 shrink-0">
+                      <Wallet className="h-3.5 w-3.5" />
                     </div>
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/icon:opacity-100 transition-opacity duration-200">
-                       <Plus className="h-4 w-4" />
-                    </div>
+                    
+                    {/* ETH Balance - Always visible */}
+                    {hasWallet && !walletLoading && (
+                      <span className="text-xs font-semibold whitespace-nowrap pr-1" style={{ color: 'var(--page-text-secondary)' }}>
+                        {formatBalance(ethBalance)}
+                      </span>
+                    )}
                   </div>
 
-                  {/* Wallet Info */}
-                  <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
+                  {/* Email / Wallet Address Display */}
+                  <div className="flex-1 flex items-center gap-1 sm:gap-2 min-w-0">
                     {hasWallet && !walletLoading ? (
                       <>
-                        {/* Email (default) / Wallet Address (on hover) */}
+                        {/* Email (default) - Wallet Address (hover) */}
                         <div className="relative flex-1 min-w-0">
-                          {/* Email - Default State */}
-                          <div className="flex items-center gap-1.5 group-hover:opacity-0 transition-opacity duration-200">
-                            <span className="text-xs font-medium truncate" style={{ color: 'var(--page-text-primary)' }}>
-                              {userEmail || 'No email'}
-                            </span>
+                          {/* Email - Shown by default (without @domain) */}
+                          <div className="text-xs font-medium truncate transition-opacity duration-200 group-hover:opacity-0"
+                            style={{ color: 'var(--page-text-primary)' }}
+                          >
+                            {userEmail?.split('@')[0] || 'No email'}
                           </div>
                           
-                          {/* Wallet Address - Hover State */}
+                          {/* Wallet Address - Shown on hover */}
                           <div 
-                            className="absolute inset-0 flex items-center gap-1.5 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            className="absolute inset-0 flex items-center gap-1 sm:gap-1.5 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                             onClick={handleCopyAddress}
-                            title="Click to Copy Address"
+                            title="Click to copy wallet address"
                           >
                             <span className="text-xs font-mono font-medium truncate" style={{ color: 'var(--page-text-primary)' }}>
-                              {evmAddress?.slice(0, 6)}...{evmAddress?.slice(-4)}
+                              <span className="hidden sm:inline">{evmAddress?.slice(0, 6)}...{evmAddress?.slice(-4)}</span>
+                              <span className="sm:hidden">{evmAddress?.slice(0, 4)}...{evmAddress?.slice(-3)}</span>
                             </span>
                             {copied ? (
                               <Check className="h-3 w-3 text-green-500 shrink-0" />
                             ) : (
-                              <Copy className="h-3 w-3 opacity-50 shrink-0 group-hover:opacity-100 transition-opacity" />
+                              <Copy className="h-3 w-3 opacity-70 shrink-0" />
                             )}
-                          </div>
-                        </div>
-                        
-                        {/* ETH Balance - Rounded/Square Badge with expand animation */}
-                        <div className="relative shrink-0">
-                          <div className="px-2 py-1 rounded-full sm:rounded-lg transition-all duration-300 overflow-hidden whitespace-nowrap"
-                            style={{
-                              backgroundColor: 'var(--glass-bg-secondary)',
-                              width: 'fit-content',
-                              maxWidth: '80px',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.maxWidth = '120px'
-                              e.currentTarget.style.paddingLeft = '0.625rem'
-                              e.currentTarget.style.paddingRight = '0.625rem'
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.maxWidth = '80px'
-                              e.currentTarget.style.paddingLeft = '0.5rem'
-                              e.currentTarget.style.paddingRight = '0.5rem'
-                            }}
-                          >
-                            <span className="text-xs font-semibold" style={{ color: 'var(--page-text-secondary)' }}>
-                              0.00 ETH
-                            </span>
                           </div>
                         </div>
                       </>
                     ) : (
-                      <span className="text-xs font-medium" style={{ color: 'var(--page-text-secondary)' }}>
+                      <span className="text-xs font-medium truncate" style={{ color: 'var(--page-text-secondary)' }}>
                         Connecting...
                       </span>
                     )}
