@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Upload, CheckCircle2, AlertCircle, ArrowLeft, Sparkles, Mail, Bookmark, ArrowRight, Shield, Lock, ChevronDown, Info, X } from 'lucide-react'
+import { Loader2, Upload, CheckCircle2, AlertCircle, ArrowLeft, Sparkles, Mail, Bookmark, ArrowRight, Shield, ChevronDown, Info, X } from 'lucide-react'
 // USDC transfer için ERC20 transfer fonksiyonunu encode ediyoruz
 // Function selector: transfer(address,uint256) = 0xa9059cbb
 
