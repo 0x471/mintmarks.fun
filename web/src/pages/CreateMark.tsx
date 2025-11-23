@@ -62,6 +62,11 @@ export default function CreateMark() {
       navigate('/')
     }
   }, [isAuthenticated, isDemoMode, navigate])
+
+  // Proof Generation Logs
+  const [proofLogs, setProofLogs] = useState<string[]>([])
+  const [proofStatus, setProofStatus] = useState<'idle' | 'generating' | 'completed' | 'error'>('idle')
+
   
   // Mock email data for demo
   const mockEmails: GmailMessageDetail[] = [
@@ -319,193 +324,124 @@ export default function CreateMark() {
     return getEmailSource(email) === emailFilter
   })
 
+
+  // Helper to add logs
+  const addLog = (msg: string) => {
+    setProofLogs(prev => [...prev, msg])
+  }
+
+  // Handle Self ID Verification (Mock)
+  const handleVerifySelfID = async () => {
+    try {
+      setUnifiedStep('self-id-requesting')
+      addLog('Requesting identity verification from Self ID App...')
+      
+      // Simulate verification delay
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      addLog('Identity verified successfully.')
+      setUnifiedStep('self-id-verified')
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Proceed to Mint phase
+      setUnifiedStep('mint-start')
+      startMinting()
+      
+    } catch (err) {
+      console.error('Self ID verification failed:', err)
+      setError('Self ID verification failed. Please try again.')
+      setUnifiedStep('self-id-prompt')
+    }
+  }
+
   // Start Unified Flow
   const startUnifiedFlow = async () => {
     if (!selectedEmail) return
     
     setIsUnifiedFlow(true)
-    setUnifiedStep('proof-loading-email')
     setError(null)
 
-    // Demo mode: simulate entire flow
-    if (isDemoMode) {
-      await runDemoUnifiedFlow()
-      return
-    }
+    // 1. Start Proof Generation in Background
+    startProofGeneration().catch(err => {
+      console.error('Background proof generation failed:', err)
+    })
 
-    // Real flow
-    await runRealUnifiedFlow()
+    // 2. Initialize Wallet Step
+    if (walletAddress || (evmAddress && currentUser)) {
+       setWalletAddress(evmAddress || walletAddress)
+       setUnifiedStep('wallet-connected')
+       // Move to Self ID step instead of sign prompt
+       setTimeout(() => setUnifiedStep('self-id-prompt'), 500)
+    } else {
+       setUnifiedStep('wallet-prompt')
+    }
   }
 
-  // Demo unified flow - skip wallet connection
-  const runDemoUnifiedFlow = async () => {
-    if (!selectedEmail) return
+  const startProofGeneration = async () => {
+    setProofStatus('generating')
+    setProofLogs(['Initializing proof generation process...'])
+    setProof(null)
 
     try {
-      // Phase 1: Proof Generation
-      setUnifiedStep('proof-loading-email')
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      setUnifiedStep('proof-importing-sdk')
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      setUnifiedStep('proof-loading-blueprint')
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      setUnifiedStep('proof-generating')
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      setUnifiedStep('proof-validating')
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      setUnifiedStep('proof-complete')
-      
-      // Create mock proof
-      const mockProof = {
-        publicSignals: {
-          emailHeader: 'mock-header',
-          emailBody: 'mock-body',
-          eventName: selectedEmail.subject.replace(/^.*Registration Confirmation:?\s*/i, '').trim() || 'Event',
-          eventDate: selectedEmail.date
-        },
-        proof: {
-          a: ['mock-a-1', 'mock-a-2'],
-          b: [['mock-b-1', 'mock-b-2'], ['mock-b-3', 'mock-b-4']],
-          c: ['mock-c-1', 'mock-c-2']
+      // Demo Mode Simulation
+      if (isDemoMode) {
+        addLog('Demo Mode: Simulating proof generation...')
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        addLog('Loading email content...')
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        addLog('Importing ZK circuit artifacts...')
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        addLog('Generating Witness...')
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        addLog('Calculating Zero-Knowledge Proof (Groth16)...')
+        await new Promise(resolve => setTimeout(resolve, 3000))
+        addLog('Verifying proof on-chain...')
+        
+        const mockProof = {
+          publicSignals: {
+            emailHeader: 'mock-header',
+            emailBody: 'mock-body',
+            eventName: selectedEmail!.subject.replace(/^.*Registration Confirmation:?\s*/i, '').trim() || 'Event',
+            eventDate: selectedEmail!.date
+          },
+          proof: {
+            a: ['mock-a-1'], b: [['mock-b-1']], c: ['mock-c-1']
+          }
         }
-      }
-      setProof(mockProof)
-      setIsProofValid(true)
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      // Phase 2: Skip wallet connection in demo mode, go directly to minting
-      // Simulate wallet connected state
-      setWalletAddress('0xDemo123...')
-      setUnifiedStep('wallet-complete')
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      // Phase 3: Generate NFT image and mint
-      setUnifiedStep('mint-generating-artwork')
-      
-      const eventName = selectedEmail.subject.replace(/^.*Registration Confirmation:?\s*/i, '').trim() || 'Event'
-      const eventDate = new Date(selectedEmail.date).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      })
-      
-      const imageResult = await generateNFTImage({
-        eventName,
-        eventDate,
-        primaryColor: '#6396F4',
-        proofHash: 'demo-proof-hash'
-      })
-      
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      setUnifiedStep('mint-submitting')
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      setUnifiedStep('mint-confirming')
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // Create mock NFT
-      const proofId = `demo-${Date.now()}`
-      const mockTokenId = Math.floor(Math.random() * 1000000).toString()
-      const mockTxHash = `0x${Array.from({ length: 64 }, () => 
-        Math.floor(Math.random() * 16).toString(16)
-      ).join('')}`
-      
-      const nftId = `nft-${Date.now()}-${mockTokenId}`
-      
-      const metadata: NFTMetadata = {
-        name: `Mark: ${eventName}`,
-        description: `Proof of commitment at ${eventName} on ${eventDate}. This Mark represents a zero-knowledge proof of your verifiable commitment.`,
-        image: imageResult.imageUrl,
-        external_url: window.location.origin,
-        attributes: [
-          { trait_type: 'Event Name', value: eventName },
-          { trait_type: 'Date', value: eventDate },
-          { trait_type: 'Proof Hash', value: proofId },
-          { trait_type: 'Art Style', value: 'Picasso-Inspired Cubist' },
-        ],
-      }
-      
-      const nftData = {
-        id: nftId,
-        tokenId: mockTokenId,
-        txHash: mockTxHash,
-        metadata,
-        imageUrl: imageResult.imageUrl,
-        walletAddress: '0xDemo123...',
-        proofId,
-        mintedAt: new Date().toISOString(),
-        status: 'minted' as const,
+        setProof(mockProof)
+        setProofStatus('completed')
+        addLog('Proof generation complete! Ready to mint.')
+        return
       }
 
-      const existingNFTs = JSON.parse(localStorage.getItem('mintmark_nfts') || '[]')
-      existingNFTs.push(nftData)
-      localStorage.setItem('mintmark_nfts', JSON.stringify(existingNFTs))
+      // Real Proof Generation
+      if (!accessToken) throw new Error('No access token')
 
-      setUnifiedStep('mint-complete')
-      showToast('NFT minted successfully!', 'success')
-      
-      // Redirect to My Marks after a short delay
-      setTimeout(() => {
-        navigate('/marks?demo=true')
-      }, 2000)
-      
-    } catch (err: unknown) {
-      const error = err as Error
-      console.error('Failed in demo unified flow:', error)
-      setError(error.message || 'Failed to complete demo flow')
-      setIsUnifiedFlow(false)
-      setUnifiedStep(null)
-    }
-  }
+      addLog('Fetching raw email content from Gmail...')
+      const emailContent = await getEmailRaw(accessToken, selectedEmail!.id)
+      addLog(`Email content loaded (${emailContent.length} bytes).`)
 
-  // Real unified flow
-  const runRealUnifiedFlow = async () => {
-    if (!selectedEmail || !accessToken) return
-
-    try {
-      // Phase 1: Proof Generation
-      // 1. Loading Email Content (5%)
-      setUnifiedStep('proof-loading-email')
-      const emailContent = await getEmailRaw(accessToken, selectedEmail.id)
-      
-      // 2. Importing ZK SDK (10%)
-      setUnifiedStep('proof-importing-sdk')
+      addLog('Importing ZK-Email SDK and artifacts...')
       const { ProofGenerator } = await import('@/lib/proofGenerator')
       const { Buffer } = await import('buffer')
       const emailBuffer = Buffer.from(emailContent, 'utf-8')
       
-      // 3. Loading Blueprint (15%)
-      setUnifiedStep('proof-loading-blueprint')
-      
+      addLog('Initializing Circuit...')
       const proofGenerator = new ProofGenerator()
-      // 4. Generating Proof (25%)
+      
+      addLog('Generating ZK Proof... This may take up to 60 seconds.')
+      addLog('Please do not close this tab.')
+      
       const proofResult = await proofGenerator.generateProof(emailBuffer, (status) => {
-        if (status.includes('Loading circuit')) {
-          setUnifiedStep('proof-loading-blueprint')
-        } else if (status.includes('Generating proof')) {
-          setUnifiedStep('proof-generating')
-        } else if (status.includes('Verifying')) {
-          setUnifiedStep('proof-validating')
-        }
+        addLog(`> ${status}`)
       })
       
       if (!proofResult.success || !proofResult.proof) {
         throw new Error(proofResult.error || 'Proof generation failed')
       }
+      addLog('Proof generated successfully.')
       
-      // 5. Validating Proof (30%)
-      if (!proofResult.proof.verified) {
-        throw new Error('Proof verification failed')
-      }
-      
-      setUnifiedStep('proof-validating')
-      
+      addLog('Validating proof structure...')
       // Format result
       const result = {
         proof: {
@@ -515,46 +451,28 @@ export default function CreateMark() {
         publicSignals: {
           emailHeader: proofResult.proof.publicInputs[0] || '',
           emailBody: proofResult.proof.publicInputs[1] || '',
-          eventName: proofResult.metadata?.eventName || selectedEmail.subject.replace(/^.*Registration Confirmation:?\s*/i, '').trim() || 'Event',
-          eventDate: proofResult.metadata?.dateValue || selectedEmail.date
+          eventName: proofResult.metadata?.eventName || selectedEmail!.subject.replace(/^.*Registration Confirmation:?\s*/i, '').trim() || 'Event',
+          eventDate: proofResult.metadata?.dateValue || selectedEmail!.date
         },
         metadata: proofResult.metadata
       }
+      
       const validation = validateProof(result)
-      setProof(result)
-      setIsProofValid(validation.isValid)
-      
-      // 6. Proof Complete (33%)
-      setUnifiedStep('proof-complete')
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
       if (!validation.isValid) {
         throw new Error(validation.error || 'Proof validation failed')
       }
 
-      // Phase 2: Wallet Connection
-      // Check if CDP wallet already connected
-      if (evmAddress && currentUser) {
-        setWalletAddress(evmAddress)
-        setUnifiedStep('wallet-sign-prompt')
-      } else {
-        // Not connected, prompt user to connect (CDP or External)
-        setUnifiedStep('wallet-prompt')
-      }
-      
+      setProof(result)
+      setProofStatus('completed')
+      addLog('Proof verified and ready for minting.')
+
     } catch (err: unknown) {
-      const error = err as Error & { name?: string }
-      console.error('Failed in unified flow:', error)
-      
-      if (error.name === 'TokenExpiredError' || (error.message && error.message.includes('Token expired'))) {
-        handleTokenExpiration()
-        setError('Your session has expired. Please sign in again.')
-      } else {
-        setError(error.message || 'Failed to complete flow')
-      }
-      
-      setIsUnifiedFlow(false)
-      setUnifiedStep(null)
+      const error = err as Error
+      console.error('Proof generation error:', error)
+      addLog(`ERROR: ${error.message || 'Proof generation failed'}`)
+      setProofStatus('error')
+      // We don't set main 'error' state here to avoid blocking the UI.
+      // The Mint step will check 'proofStatus'.
     }
   }
 
@@ -590,7 +508,8 @@ export default function CreateMark() {
             setOtpCode('')
             setFlowId(null)
             await new Promise(resolve => setTimeout(resolve, 500))
-            setUnifiedStep('wallet-sign-prompt')
+            // Move to Self ID step
+            setUnifiedStep('self-id-prompt')
           } else {
             throw new Error('Wallet creation failed. No EOA address returned.')
           }
@@ -662,8 +581,8 @@ export default function CreateMark() {
       setUnifiedStep('wallet-connected')
       await new Promise(resolve => setTimeout(resolve, 500))
       
-      // Auto advance to sign prompt
-      setUnifiedStep('wallet-sign-prompt')
+      // Auto advance to Self ID
+      setUnifiedStep('self-id-prompt')
       
     } catch (err: unknown) {
       const error = err as Error
@@ -680,7 +599,7 @@ export default function CreateMark() {
       if (unifiedStep === 'wallet-connecting' || unifiedStep === 'wallet-prompt') {
         setUnifiedStep('wallet-connected')
         setTimeout(() => {
-          setUnifiedStep('wallet-sign-prompt')
+          setUnifiedStep('self-id-prompt')
         }, 500)
       }
     }
@@ -768,7 +687,6 @@ export default function CreateMark() {
       // Note: CDP hooks automatically track transaction status via txData
       // We'll check txData.status in useEffect
       
-      setUnifiedStep('wallet-complete')
       await new Promise(resolve => setTimeout(resolve, 500))
       
       // Auto advance to minting
@@ -1179,7 +1097,7 @@ export default function CreateMark() {
                       <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-6 sm:px-6 animate-in fade-in duration-300">
                         {/* Backdrop - Non-clickable */}
                         <div
-                          className="absolute inset-0 dark:bg-black/80 bg-black/20"
+                          className="fixed inset-0 dark:bg-black/80 bg-black/20"
                           style={{
                             backdropFilter: 'blur(8px) saturate(120%)',
                             WebkitBackdropFilter: 'blur(8px) saturate(120%)',
@@ -1188,7 +1106,7 @@ export default function CreateMark() {
                         />
 
                         <div 
-                          className="relative z-10 w-full max-w-2xl max-h-[90vh] overflow-hidden border border-solid rounded-lg animate-in zoom-in-95 duration-300"
+                          className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-hidden border border-solid rounded-lg animate-in zoom-in-95 duration-300"
                           style={{
                             borderRadius: 'var(--figma-card-radius)',
                             borderColor: 'var(--modal-border)',
@@ -1313,6 +1231,7 @@ export default function CreateMark() {
                                   currentStep={unifiedStep}
                                   onConnectCDPWallet={handleConnectCDPWallet}
                                   onConnectExternalWallet={hasExternalWallet ? handleConnectExternalWallet : undefined}
+                                  onVerifySelfID={handleVerifySelfID}
                                   onSignMessage={handleSignMessage}
                                   onPayFee={handlePayFee}
                                   onChangeWallet={() => {
@@ -1323,6 +1242,14 @@ export default function CreateMark() {
                                     setFlowId(null)
                                     setUnifiedStep('wallet-prompt')
                                   }}
+                                  onClose={() => {
+                                    // Close modal
+                                    setIsUnifiedFlow(false)
+                                    setUnifiedStep(null)
+                                    setProofStatus('idle')
+                                    setProofLogs([])
+                                  }}
+                                  onShare={handleShareOnX}
                                   walletAddress={walletAddress || undefined}
                                   error={error}
                                   showOtpInput={showOtpInput}
@@ -1332,6 +1259,8 @@ export default function CreateMark() {
                                   isSendingOtp={isSendingOtp}
                                   isVerifyingOtp={isVerifyingOtp}
                                   hasExternalWallet={hasExternalWallet}
+                                  proofLogs={proofLogs}
+                                  proofStatus={proofStatus}
                                 />
 
                                 {/* Security footer */}
