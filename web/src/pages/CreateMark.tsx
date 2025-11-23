@@ -1243,30 +1243,30 @@ export default function CreateMark() {
                             ) : (
                               /* Progress State */
                               <div className="space-y-6">
-                                {/* Header with POAP & Info - Horizontal Layout */}
-                                <div className="flex items-center gap-3 p-2.5 rounded-xl border" style={{ 
+                                {/* Header with POAP & Info - Compact Horizontal Layout */}
+                                <div className="flex items-center gap-2 p-2 rounded-lg border" style={{ 
                                   backgroundColor: 'var(--glass-bg-tertiary)',
                                   borderColor: 'var(--glass-border)'
                                 }}>
-                                  {/* POAP Badge */}
-                                  <div className="flex-shrink-0">
-                                    <POAPBadge email={selectedEmail} size="sm" showVerified={false} className="shadow-md" />
+                                  {/* POAP Badge - Smaller */}
+                                  <div className="flex-shrink-0 scale-75 origin-left">
+                                    <POAPBadge email={selectedEmail} size="sm" showVerified={false} className="shadow-sm" />
                                   </div>
                                   
-                                  {/* Title */}
-                                  <h3 className="font-bold text-sm flex-1 truncate" style={{ color: 'var(--page-text-primary)' }}>
+                                  {/* Title - Compact */}
+                                  <h3 className="font-semibold text-xs flex-1 truncate" style={{ color: 'var(--page-text-primary)' }}>
                                     Mint Your Mintmark
                                   </h3>
                                   
-                                  {/* Celo Badge */}
-                                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20 whitespace-nowrap flex-shrink-0">
+                                  {/* Celo Badge - Compact */}
+                                  <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20 whitespace-nowrap flex-shrink-0">
                                     Celo
                                   </span>
                                   
-                                  {/* ZK-Verified Badge */}
+                                  {/* ZK-Verified Badge - Compact */}
                                   <div className="flex items-center gap-1 flex-shrink-0">
-                                    <Shield className="w-3 h-3 text-green-500" />
-                                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">ZK-Verified</span>
+                                    <Shield className="w-2.5 h-2.5 text-green-500" />
+                                    <span className="text-[9px] text-muted-foreground whitespace-nowrap">ZK</span>
                                   </div>
                                 </div>
 
