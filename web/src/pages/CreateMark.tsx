@@ -1193,7 +1193,7 @@ export default function CreateMark() {
                           {/* Header - Sticky Top */}
                           {unifiedStep !== 'mint-complete' && (
                             <div 
-                              className="sticky top-0 px-6 pt-6 pb-4 backdrop-blur-md transition-all" 
+                              className="sticky top-0 px-6 py-4 backdrop-blur-md transition-all flex items-center" 
                               style={{ 
                                 backgroundColor: 'var(--glass-bg-primary)',
                                 backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
@@ -1201,27 +1201,27 @@ export default function CreateMark() {
                                 zIndex: 102 
                               }}
                             >
-                              <div className="flex items-start gap-3">
+                              <div className="flex items-center gap-3 w-full min-w-0">
                                 {/* Header - Clean Design */}
-                                <div className="flex-1 px-3 py-2.5 rounded-xl transition-all" style={{ 
+                                <div className="flex-1 min-w-0 px-3 py-2.5 rounded-xl transition-all" style={{ 
                                   backgroundColor: 'var(--glass-bg-secondary)',
                                   backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
                                   WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
                                   boxShadow: 'var(--glass-shadow)'
                                 }}>
                                   {/* Row 1: Subject */}
-                                  <div>
+                                  <div className="min-w-0">
                                     <h3 className="text-sm font-semibold truncate leading-tight" style={{ color: 'var(--page-text-primary)' }}>
                                       {selectedEmail?.subject || 'Mint Your Mintmark'}
                                     </h3>
                                   </div>
                                   
                                   {/* Row 2: Meta Info & Badges */}
-                                  <div className="flex items-center gap-2 mt-1.5">
-                                    <span className="text-[10px] truncate flex-shrink-0" style={{ color: 'var(--page-text-secondary)' }}>
+                                  <div className="flex items-center gap-2 mt-1.5 min-w-0">
+                                    <span className="text-[10px] truncate flex-shrink min-w-0" style={{ color: 'var(--page-text-secondary)' }}>
                                       {selectedEmail?.from?.split('<')[0]?.trim() || 'Event'}
                                     </span>
-                                    <span className="text-[10px]" style={{ color: 'var(--page-text-muted)' }}>•</span>
+                                    <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--page-text-muted)' }}>•</span>
                                     <span className="text-[10px] whitespace-nowrap flex-shrink-0" style={{ color: 'var(--page-text-secondary)' }}>
                                       {selectedEmail?.date ? new Date(selectedEmail.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Today'}
                                     </span>

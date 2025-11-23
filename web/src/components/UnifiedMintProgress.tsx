@@ -11,11 +11,11 @@
 
 import { useState, useEffect, useRef } from 'react'
 import React from 'react'
-import { Loader2, CheckCircle2, Circle, Wallet, FileCheck, Coins, Zap, ChevronDown, ChevronUp, Info, ArrowRight, Mail, Terminal, Fingerprint } from 'lucide-react'
+import { Loader2, CheckCircle2, Circle, Wallet, FileCheck, Coins, Zap, ChevronDown, ChevronUp, Info, Mail, Terminal, Fingerprint } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card'
-import { ProgressBadge } from './ProgressBadge'
+import { type SupportedNetwork } from '@/config/chains'
 
 // Simplified 3-step unified flow
 export type UnifiedMintStep = 
@@ -136,8 +136,8 @@ interface UnifiedMintProgressProps {
   proofLogs?: string[]
   proofStatus?: 'idle' | 'generating' | 'completed' | 'error'
   // Network selection
-  selectedNetwork?: 'base-sepolia' | 'celo-sepolia'
-  onNetworkChange?: (network: 'base-sepolia' | 'celo-sepolia') => void
+  selectedNetwork?: SupportedNetwork
+  onNetworkChange?: (network: SupportedNetwork) => void
 }
 
 export function UnifiedMintProgress({
@@ -200,6 +200,17 @@ export function UnifiedMintProgress({
     return 'pending'
   }
 
+  // Get number of completed phases for progress line
+  const getCompletedPhases = (): number => {
+    if (!currentPhase) return 0
+    
+    const phaseOrder = ['wallet', 'self-id', 'mint']
+    const currentPhaseIndex = phaseOrder.indexOf(currentPhase)
+    
+    // Return number of completed phases (phases before current)
+    return Math.max(0, currentPhaseIndex)
+  }
+
   // Get current step details
   const currentStepDetails = stepConfigs.find(s => s.key === currentStep)
   const currentPhaseGroup = phaseGroups.find(g => g.phase === currentPhase)
@@ -222,8 +233,8 @@ export function UnifiedMintProgress({
           }} 
         />
 
-        {/* Step Container */}
-        <div className="flex items-center justify-between px-4 py-6 overflow-x-auto no-scrollbar">
+        {/* Step Container - Compact */}
+        <div className="flex items-center justify-center px-3 py-3 overflow-x-auto no-scrollbar">
           {phaseGroups.map((group, index) => {
             const phaseStatus = getPhaseStatus(group.phase)
             const isActive = phaseStatus === 'active'
@@ -231,78 +242,56 @@ export function UnifiedMintProgress({
             const PhaseIcon = group.icon
 
             return (
-              <div key={group.phase} className="flex flex-col items-center flex-shrink-0 relative group">
-                {/* Step Circle */}
+              <div key={group.phase} className="flex items-center flex-shrink-0 relative group">
+                {/* Step Badge - Compact */}
                 <div 
                   className={cn(
-                    "relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 transform group-hover:scale-110",
-                    "border-2 shadow-lg backdrop-blur-sm",
-                    isComplete && "bg-gradient-to-br from-green-500 to-emerald-600 border-green-400 shadow-green-500/30",
-                    isActive && "bg-gradient-to-br from-blue-500 to-indigo-600 border-blue-400 shadow-blue-500/30",
-                    !isActive && !isComplete && "border-gray-300 shadow-gray-500/20"
+                    "relative flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300",
+                    "backdrop-blur-sm border"
                   )}
                   style={{
-                    background: !isActive && !isComplete ? 'var(--glass-bg-secondary)' : undefined,
-                    borderColor: !isActive && !isComplete ? 'var(--glass-border)' : undefined,
+                    backgroundColor: isComplete 
+                      ? 'var(--glass-bg-secondary)' 
+                      : isActive 
+                        ? 'var(--figma-cta1-bg)' 
+                        : 'var(--glass-bg-tertiary)',
+                    borderColor: isComplete 
+                      ? 'rgba(34, 197, 94, 0.3)' 
+                      : isActive 
+                        ? 'var(--figma-cta1-border)' 
+                        : 'var(--glass-border)',
+                    color: isComplete 
+                      ? '#22c55e' 
+                      : isActive 
+                        ? 'var(--figma-cta1-text)' 
+                        : 'var(--page-text-muted)',
+                    backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
+                    WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
                   }}
                 >
-                  {/* Animated pulse ring for active step */}
-                  {isActive && (
-                    <div className="absolute inset-0 rounded-full border-2 border-blue-400 animate-ping opacity-75" />
-                  )}
+                  {/* Step Number */}
+                  <span className="text-xs font-bold">
+                    {index + 1}
+                  </span>
                   
                   {/* Icon */}
-                  {isComplete ? (
-                    <Check className="h-5 w-5 text-white" />
-                  ) : (
-                    <PhaseIcon className={cn(
-                      "h-5 w-5 transition-colors duration-300",
-                      isActive ? "text-white" : "text-gray-400"
-                    )} />
-                  )}
+                  <PhaseIcon className="h-4 w-4" />
                   
-                  {/* Step number badge */}
-                  <div 
-                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center"
-                    style={{
-                      background: isComplete ? 'linear-gradient(135deg, #10b981, #059669)' : 
-                                 isActive ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 'var(--glass-bg-tertiary)',
-                      color: isActive || isComplete ? 'white' : 'var(--page-text-muted)',
-                      border: '1.5px solid var(--glass-border)',
-                      fontSize: '10px'
-                    }}
-                  >
-                    {index + 1}
-                  </div>
-                </div>
-
-                {/* Step Label */}
-                <div className="mt-3 text-center">
-                  <div 
-                    className={cn(
-                      "text-sm font-semibold transition-colors duration-300",
-                      isComplete && "text-green-600",
-                      isActive && "text-blue-600", 
-                      !isActive && !isComplete && "text-gray-500"
-                    )}
-                  >
+                  {/* Step Title */}
+                  <span className="text-xs font-medium whitespace-nowrap">
                     {group.shortTitle}
-                  </div>
-                  <div 
-                    className="text-xs mt-1 opacity-70"
-                    style={{ color: 'var(--page-text-muted)' }}
-                  >
-                    {group.description}
-                  </div>
+                  </span>
                 </div>
 
-                {/* Connecting Line to Next Step */}
+                {/* Arrow between steps */}
                 {index < phaseGroups.length - 1 && (
-                  <div className="absolute top-6 left-12 w-8 sm:w-16 lg:w-24">
-                    <ArrowRight className={cn(
-                      'h-4 w-4 transition-all duration-500 transform',
-                      isComplete ? 'text-green-500 scale-110' : 'text-gray-300 scale-100'
-                    )} />
+                  <div className="mx-2 flex-shrink-0">
+                    <div 
+                      className="w-6 h-0.5 rounded-full transition-colors duration-500"
+                      style={{
+                        backgroundColor: isComplete ? '#22c55e' : 'var(--glass-border)'
+                      }}
+                    />
                   </div>
                 )}
               </div>
