@@ -236,9 +236,7 @@ export default function CreateMark() {
     setError(null)
 
     try {
-      console.log('Fetching emails from Gmail...')
       const result: EmailSearchResult = await searchLumaEmails(token, reset ? undefined : nextPageToken, 30)
-      console.log(`[Gmail] Found ${result.emails.length} new emails${reset ? ' (initial load)' : ' (load more)'}`)
       
       if (reset) {
         setLumaEmails(result.emails)

@@ -98,8 +98,6 @@ export function useWalletStatus(): WalletStatus {
     if (isInitialized) {
       getCurrentUser().then((user) => {
         if (user) {
-          console.log('Current user:', user.userId)
-          console.log('EVM Accounts:', user.evmAccounts)
           setConnectionTimeout(false) // Reset timeout if we have a user
         } else {
           // No user found - stop loading state
@@ -142,12 +140,14 @@ export function useWalletStatus(): WalletStatus {
   const hasWallet = isSignedIn && !!evmAddress
   const needsWallet = isInitialized && !isSignedIn && !evmAddress && !isLoading
 
-  // DEBUG: Log wallet state changes
+  // Development-only logging
   useEffect(() => {
-    if (hasWallet) {
-      console.log('✅ [useWalletStatus] Wallet connected:', evmAddress)
-    } else if (needsWallet && !isLoading) {
-      console.log('⚠️ [useWalletStatus] Wallet needed - user should create wallet')
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      if (hasWallet) {
+        console.log('✅ [useWalletStatus] Wallet connected:', evmAddress)
+      } else if (needsWallet && !isLoading) {
+        console.log('⚠️ [useWalletStatus] Wallet needed - user should create wallet')
+      }
     }
   }, [hasWallet, needsWallet, isLoading, evmAddress])
 

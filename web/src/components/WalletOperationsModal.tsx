@@ -176,11 +176,14 @@ export function WalletOperationsModal({
     // Max fee = Base Fee * 2 + Priority Fee (Standard EIP-1559 calculation)
     const safeMaxFee = (gasPrice.maxFeePerGas || parseGwei('20')) + safePriorityFee
 
-    console.log('[Wallet] ⛽️ Celo Gas Params:', {
-      maxFeePerGas: safeMaxFee.toString(),
-      maxPriorityFeePerGas: safePriorityFee.toString(),
-      feeCurrency: 'null'
-    })
+    // Development logging
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.log('[Wallet] ⛽️ Celo Gas Params:', {
+        maxFeePerGas: safeMaxFee.toString(),
+        maxPriorityFeePerGas: safePriorityFee.toString(),
+        feeCurrency: 'null'
+      })
+    }
 
     // 1. Sign the transaction using CDP SDK
     const { signedTransaction } = await signEvmTransaction({
@@ -205,7 +208,9 @@ export function WalletOperationsModal({
       serializedTransaction: signedTransaction as `0x${string}`
     })
 
-    console.log('[Wallet] ✅ Celo Transaction broadcasted:', transactionHash)
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.log('[Wallet] ✅ Celo Transaction broadcasted:', transactionHash)
+    }
 
     // Note: Transaction tracking is handled by useTransactionStatus hook
     // which will monitor the transaction and update UI accordingly
@@ -230,12 +235,14 @@ export function WalletOperationsModal({
       setIsSending(true)
       clearStatus() // Clear any previous transaction status
       
-      console.log('[Wallet] 💰 Sending EOA transaction via CDP React Hooks (official pattern):', {
-        network: selectedNetwork,
-        from: walletAddress,
-        to: sendToAddress,
-        amount: `${amount} ${networkConfig.nativeCurrency.symbol}`,
-      })
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.log('[Wallet] 💰 Sending EOA transaction via CDP React Hooks (official pattern):', {
+          network: selectedNetwork,
+          from: walletAddress,
+          to: sendToAddress,
+          amount: `${amount} ${networkConfig.nativeCurrency.symbol}`,
+        })
+      }
 
       // Use CDP React Hooks - follow official documentation exactly
       let result;
@@ -260,7 +267,9 @@ export function WalletOperationsModal({
         })
       }
 
-      console.log('[Wallet] ✅ EOA Transaction submitted via React Hooks:', result.transactionHash)
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.log('[Wallet] ✅ EOA Transaction submitted via React Hooks:', result.transactionHash)
+      }
       
       // Start tracking transaction status
       trackTransaction(result.transactionHash, selectedNetwork)
@@ -300,7 +309,9 @@ export function WalletOperationsModal({
     try {
       setIsCreatingWallet(true)
       
-      console.log('[WalletCreation] Starting wallet creation for:', userEmail)
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.log('[WalletCreation] Starting wallet creation for:', userEmail)
+      }
       
       // Start CDP email signin flow
       const result = await signInWithEmail({ email: userEmail })
@@ -328,7 +339,9 @@ export function WalletOperationsModal({
     }
 
     try {
-      console.log('[WalletCreation] Verifying OTP...')
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.log('[WalletCreation] Verifying OTP...')
+      }
       
       await verifyEmailOTP({ flowId, otp: otpCode })
       
