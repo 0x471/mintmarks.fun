@@ -238,7 +238,7 @@ export default function CreateMark() {
     try {
       console.log('Fetching emails from Gmail...')
       const result: EmailSearchResult = await searchLumaEmails(token, reset ? undefined : nextPageToken, 30)
-      console.log(`Found ${result.emails.length} emails`)
+      console.log(`[Gmail] Found ${result.emails.length} new emails${reset ? ' (initial load)' : ' (load more)'}`)
       
       if (reset) {
         setLumaEmails(result.emails)
@@ -1389,7 +1389,15 @@ export default function CreateMark() {
                               <EmailCard
                                 key={email.id}
                                 email={email}
-                                onMarkIt={() => !loading && !selectedEmail && handleEmailSelect(email)}
+                                onMarkIt={() => {
+                                  if (!loading && !selectedEmail) {
+                                    handleEmailSelect(email)
+                                    // Start unified flow immediately after email selection
+                                    setTimeout(() => {
+                                      startUnifiedFlow()
+                                    }, 50)
+                                  }
+                                }}
                                 isLoading={loading}
                                 className={`cursor-pointer transition-all touch-manipulation ${
                                   selectedEmail 

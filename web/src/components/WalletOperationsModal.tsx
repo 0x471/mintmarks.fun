@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react'
-import { useSendEvmTransaction, useEvmAddress } from '@coinbase/cdp-hooks'
-import { useWalletStatus } from '@/hooks/useWalletStatus'
+import { useSendEvmTransaction, useEvmAddress, useSignInWithEmail, useVerifyEmailOTP } from '@coinbase/cdp-hooks'
+import { useEvmBalance } from '@/hooks/useEvmBalance'
+import { useTransactionStatus } from '@/hooks/useTransactionStatus'
 import { NETWORKS, type SupportedNetwork } from '@/config/chains'
 import { handleWalletError } from '@/utils/walletErrors'
+import { useAuth } from '@/hooks/useAuth'
 import { useToast } from './useToast'
 import { Button } from './ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Input } from './ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
-import { X, Send, Copy, Check, ArrowDownLeft, CreditCard, Loader2, ExternalLink } from 'lucide-react'
+import { X, Send, Copy, Check, ArrowDownLeft, CreditCard, Loader2, ExternalLink, Plus, Minus, Wallet } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface WalletOperationsModalProps {
@@ -18,6 +20,7 @@ interface WalletOperationsModalProps {
   balance: number
   selectedNetwork?: SupportedNetwork
   onNetworkChange?: (network: SupportedNetwork) => void
+  needsWalletCreation?: boolean
 }
 
 export function WalletOperationsModal({ 
@@ -25,13 +28,27 @@ export function WalletOperationsModal({
   onClose, 
   evmAddress, 
   balance,
-  selectedNetwork: propSelectedNetwork = 'celo-sepolia',
+  selectedNetwork: propSelectedNetwork = 'base-sepolia',
   onNetworkChange: propOnNetworkChange,
+  needsWalletCreation = false,
 }: WalletOperationsModalProps) {
   const { showToast } = useToast()
+  const { userEmail } = useAuth()
   const { evmAddress: hookAddress } = useEvmAddress()
   const { sendEvmTransaction } = useSendEvmTransaction()
-  const { isLoadingBalance, balance: currentBalance } = useWalletStatus()
+  const { signInWithEmail } = useSignInWithEmail()
+  const { verifyEmailOTP } = useVerifyEmailOTP()
+  const [selectedNetwork, setSelectedNetwork] = useState<SupportedNetwork>(propSelectedNetwork)
+  
+  // Wallet creation state
+  const [isCreatingWallet, setIsCreatingWallet] = useState(false)
+  const [showOtpInput, setShowOtpInput] = useState(false)
+  const [otpCode, setOtpCode] = useState('')
+  const [flowId, setFlowId] = useState<string | null>(null)
+  
+  // Enhanced hooks for better EOA wallet support
+  const { balance: networkBalance, isLoading: isLoadingBalance, refetch: refetchBalance } = useEvmBalance(selectedNetwork)
+  const { status: txStatus, receipt: txReceipt, trackTransaction, clearStatus } = useTransactionStatus()
   
   const [activeTab, setActiveTab] = useState<'send' | 'receive' | 'onramp'>('send')
   const [sendToAddress, setSendToAddress] = useState('')
@@ -39,15 +56,36 @@ export function WalletOperationsModal({
   const [isSending, setIsSending] = useState(false)
   const [copied, setCopied] = useState(false)
   const [qrCode, setQrCode] = useState<string | null>(null)
-  const [selectedNetwork, setSelectedNetwork] = useState<SupportedNetwork>(propSelectedNetwork)
 
   const walletAddress = evmAddress || hookAddress
-  const displayBalance = balance || currentBalance
+  const displayBalance = balance || networkBalance || 0
   const networkConfig = NETWORKS[selectedNetwork]
+
+  // Enhanced amount input helpers
+  const incrementAmount = () => {
+    const current = parseFloat(sendAmount) || 0
+    const increment = current < 1 ? 0.01 : current < 10 ? 0.1 : 1
+    const newAmount = Math.min(current + increment, displayBalance)
+    setSendAmount(newAmount.toFixed(current < 1 ? 2 : 1))
+  }
+
+  const decrementAmount = () => {
+    const current = parseFloat(sendAmount) || 0
+    const decrement = current <= 1 ? 0.01 : current <= 10 ? 0.1 : 1
+    const newAmount = Math.max(current - decrement, 0)
+    setSendAmount(newAmount > 0 ? newAmount.toFixed(current <= 1 ? 2 : 1) : '')
+  }
+
+  const setPresetAmount = (percentage: number) => {
+    const amount = (displayBalance * percentage).toFixed(3)
+    setSendAmount(amount)
+  }
 
   const handleNetworkChange = (network: SupportedNetwork) => {
     setSelectedNetwork(network)
     propOnNetworkChange?.(network)
+    // Clear any existing transaction status when switching networks
+    clearStatus()
   }
 
   // Generate QR code for receive tab
@@ -58,6 +96,23 @@ export function WalletOperationsModal({
       setQrCode(qrUrl)
     }
   }, [activeTab, walletAddress])
+
+  // Handle transaction confirmation
+  useEffect(() => {
+    if (txStatus === 'confirmed' && txReceipt) {
+      showToast('Transaction confirmed successfully!', 'success')
+      // Refetch balance after successful transaction
+      refetchBalance()
+      
+      // Auto-close modal after successful transaction
+      setTimeout(() => {
+        onClose()
+        clearStatus()
+      }, 3000)
+    } else if (txStatus === 'failed') {
+      showToast('Transaction failed', 'error')
+    }
+  }, [txStatus, txReceipt, showToast, refetchBalance, onClose, clearStatus])
 
   const handleCopyAddress = () => {
     if (walletAddress) {
@@ -99,11 +154,12 @@ export function WalletOperationsModal({
 
     try {
       setIsSending(true)
+      clearStatus() // Clear any previous transaction status
       
       // Convert to wei based on selected network
       const amountWei = BigInt(Math.floor(amount * 10 ** networkConfig.nativeCurrency.decimals))
 
-      console.log('[Wallet] 💰 Sending transaction:', {
+      console.log('[Wallet] 💰 Sending EOA transaction:', {
         network: selectedNetwork,
         from: walletAddress,
         to: sendToAddress,
@@ -124,20 +180,22 @@ export function WalletOperationsModal({
         }
       })
 
-      console.log('[Wallet] ✅ Transaction submitted:', result.transactionHash)
-      showToast('Transaction submitted successfully', 'success')
+      console.log('[Wallet] ✅ EOA Transaction submitted:', result.transactionHash)
+      
+      // Start tracking transaction status
+      trackTransaction(result.transactionHash, selectedNetwork)
+      
+      showToast('Transaction submitted! Tracking confirmation...', 'success')
       
       // Reset form
       setSendToAddress('')
       setSendAmount('')
       
-      // Close modal after a short delay
-      setTimeout(() => {
-        onClose()
-      }, 1500)
+      // Switch to receive tab to show transaction status
+      setActiveTab('receive')
       
     } catch (err: unknown) {
-      console.error('[Wallet] ❌ Failed to send transaction:', err)
+      console.error('[Wallet] ❌ Failed to send EOA transaction:', err)
       const errorMessage = handleWalletError(err)
       showToast(errorMessage, 'error')
     } finally {
@@ -152,6 +210,67 @@ export function WalletOperationsModal({
     const network = selectedNetwork === 'celo-sepolia' ? 'celo-sepolia' : 'base-sepolia'
     const onrampUrl = `https://pay.coinbase.com/buy/select-asset?destinationWallets=[{"address":"${walletAddress}","assets":["${asset}"],"supportedNetworks":["${network}"]}]`
     window.open(onrampUrl, '_blank')
+  }
+
+  const handleCreateWallet = async () => {
+    if (!userEmail) {
+      showToast('Please sign in with Gmail first', 'error')
+      return
+    }
+
+    try {
+      setIsCreatingWallet(true)
+      
+      console.log('[WalletCreation] Starting wallet creation for:', userEmail)
+      
+      // Start CDP email signin flow
+      const result = await signInWithEmail({ email: userEmail })
+      
+      if (result.flowId) {
+        setFlowId(result.flowId)
+        setShowOtpInput(true)
+        showToast(`Verification code sent to ${userEmail}`, 'success')
+      } else {
+        throw new Error('Failed to start email verification')
+      }
+      
+    } catch (error) {
+      console.error('[WalletCreation] Error:', error)
+      const errorMessage = handleWalletError(error)
+      showToast(errorMessage, 'error')
+      setIsCreatingWallet(false)
+    }
+  }
+
+  const handleVerifyOtp = async () => {
+    if (!flowId || !otpCode) {
+      showToast('Please enter verification code', 'error')
+      return
+    }
+
+    try {
+      console.log('[WalletCreation] Verifying OTP...')
+      
+      await verifyEmailOTP({ flowId, otp: otpCode })
+      
+      showToast('Wallet created successfully!', 'success')
+      
+      // Reset wallet creation state
+      setIsCreatingWallet(false)
+      setShowOtpInput(false)
+      setOtpCode('')
+      setFlowId(null)
+      
+      // Close modal after successful wallet creation
+      setTimeout(() => {
+        onClose()
+      }, 2000)
+      
+    } catch (error) {
+      console.error('[WalletCreation] OTP verification error:', error)
+      const errorMessage = handleWalletError(error)
+      showToast(errorMessage, 'error')
+    }
   }
 
   if (!isOpen) return null
@@ -210,67 +329,217 @@ export function WalletOperationsModal({
 
         {/* Content */}
         <div className="p-6">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'send' | 'receive' | 'onramp')} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6" style={{ backgroundColor: 'var(--glass-bg-tertiary)' }}>
-              <TabsTrigger value="send" className="gap-2">
-                <Send className="h-4 w-4" />
-                <span className="hidden sm:inline">Send</span>
-              </TabsTrigger>
-              <TabsTrigger value="receive" className="gap-2">
-                <ArrowDownLeft className="h-4 w-4" />
-                <span className="hidden sm:inline">Receive</span>
-              </TabsTrigger>
-              <TabsTrigger value="onramp" className="gap-2">
-                <CreditCard className="h-4 w-4" />
-                <span className="hidden sm:inline">Buy</span>
-              </TabsTrigger>
-            </TabsList>
+          {needsWalletCreation ? (
+            /* Wallet Creation UI */
+            <div className="space-y-6">
+              <div className="text-center space-y-3">
+                <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 flex items-center justify-center">
+                  <Wallet className="w-8 h-8 text-blue-400" />
+                </div>
+                <h3 className="text-lg font-semibold" style={{ color: 'var(--page-text-primary)' }}>
+                  {showOtpInput ? 'Verify Email' : 'Create Your Wallet'}
+                </h3>
+                <p className="text-sm" style={{ color: 'var(--page-text-secondary)' }}>
+                  {showOtpInput 
+                    ? `Enter the verification code sent to ${userEmail}`
+                    : 'Set up a secure Coinbase embedded wallet to send, receive, and manage your crypto.'
+                  }
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg border" style={{ 
+                  backgroundColor: 'var(--glass-bg-secondary)', 
+                  borderColor: 'var(--glass-border)' 
+                }}>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Check className="w-3 h-3 text-green-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium" style={{ color: 'var(--page-text-primary)' }}>
+                        Email Authenticated
+                      </p>
+                      <p className="text-xs mt-1" style={{ color: 'var(--page-text-secondary)' }}>
+                        {userEmail || 'Gmail account connected'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {showOtpInput ? (
+                  /* OTP Input */
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium" style={{ color: 'var(--page-text-primary)' }}>
+                        Verification Code
+                      </label>
+                      <Input
+                        type="text"
+                        placeholder="Enter 6-digit code"
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value)}
+                        maxLength={6}
+                        className="text-center text-lg font-mono"
+                        style={{
+                          backgroundColor: 'var(--glass-bg-tertiary)',
+                          borderColor: 'var(--glass-border)',
+                          color: 'var(--page-text-primary)'
+                        }}
+                      />
+                    </div>
+                    
+                    <Button
+                      onClick={handleVerifyOtp}
+                      disabled={otpCode.length !== 6}
+                      className="w-full gap-2 h-12"
+                      style={{
+                        backgroundColor: 'var(--figma-cta1-bg)',
+                        borderColor: 'var(--figma-cta1-border)',
+                        color: 'var(--figma-cta1-text)',
+                      }}
+                    >
+                      {isCreatingWallet ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                          Creating Wallet...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-5 w-5" />
+                          Verify & Create Wallet
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  /* Create Wallet Button */
+                  <Button
+                    onClick={handleCreateWallet}
+                    disabled={isCreatingWallet}
+                    className="w-full gap-2 h-12"
+                    style={{
+                      backgroundColor: 'var(--figma-cta1-bg)',
+                      borderColor: 'var(--figma-cta1-border)',
+                      color: 'var(--figma-cta1-text)',
+                    }}
+                  >
+                    {isCreatingWallet ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Sending Code...
+                      </>
+                    ) : (
+                      <>
+                        <Wallet className="h-5 w-5" />
+                        Create Wallet & Start Minting
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                <p className="text-xs text-center" style={{ color: 'var(--page-text-muted)' }}>
+                  Your wallet will be created securely using Coinbase's embedded wallet infrastructure
+                </p>
+              </div>
+            </div>
+          ) : (
+            /* Normal Wallet Operations */
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'send' | 'receive' | 'onramp')} className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-6" style={{ backgroundColor: 'var(--glass-bg-tertiary)' }}>
+                <TabsTrigger value="send" className="gap-2">
+                  <Send className="h-4 w-4" />
+                  <span className="hidden sm:inline">Send</span>
+                </TabsTrigger>
+                <TabsTrigger value="receive" className="gap-2">
+                  <ArrowDownLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline">Receive</span>
+                </TabsTrigger>
+                <TabsTrigger value="onramp" className="gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  <span className="hidden sm:inline">Buy</span>
+                </TabsTrigger>
+              </TabsList>
 
             {/* Send Tab */}
             <TabsContent value="send" className="space-y-4 mt-0">
-              {/* Network Selection */}
+              {/* Compact Horizontal Network Selection */}
               {propOnNetworkChange && (
-                <div className="p-3 border rounded-lg mb-4" style={{ 
+                <div className="border rounded-xl mb-4 p-3" style={{ 
                   backgroundColor: 'var(--glass-bg-tertiary)',
                   borderColor: 'var(--glass-border)',
                   borderRadius: 'var(--figma-card-radius)'
                 }}>
-                  <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--page-text-primary)' }}>
-                    Select Network
+                  <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--page-text-primary)' }}>
+                    Network
                   </label>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleNetworkChange('base-sepolia')}
-                      className={cn(
-                        "flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all border",
-                        selectedNetwork === 'base-sepolia'
-                          ? "bg-blue-500/20 border-blue-500/50 text-blue-500"
-                          : "bg-transparent border-transparent hover:bg-white/5"
-                      )}
-                      style={{
-                        borderColor: selectedNetwork === 'base-sepolia' ? 'var(--figma-cta1-border)' : 'var(--glass-border)',
-                        color: selectedNetwork === 'base-sepolia' ? 'var(--figma-cta1-text)' : 'var(--page-text-secondary)',
-                        backgroundColor: selectedNetwork === 'base-sepolia' ? 'var(--figma-cta1-bg)' : 'transparent',
-                      }}
-                    >
-                      Base Sepolia
-                    </button>
-                    <button
-                      onClick={() => handleNetworkChange('celo-sepolia')}
-                      className={cn(
-                        "flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all border",
-                        selectedNetwork === 'celo-sepolia'
-                          ? "bg-green-500/20 border-green-500/50 text-green-500"
-                          : "bg-transparent border-transparent hover:bg-white/5"
-                      )}
-                      style={{
-                        borderColor: selectedNetwork === 'celo-sepolia' ? 'var(--figma-cta1-border)' : 'var(--glass-border)',
-                        color: selectedNetwork === 'celo-sepolia' ? 'var(--figma-cta1-text)' : 'var(--page-text-secondary)',
-                        backgroundColor: selectedNetwork === 'celo-sepolia' ? 'var(--figma-cta1-bg)' : 'transparent',
-                      }}
-                    >
-                      Celo Sepolia
-                    </button>
+
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {Object.entries(NETWORKS).map(([networkKey, config]) => (
+                      <button
+                        key={networkKey}
+                        onClick={() => handleNetworkChange(networkKey as SupportedNetwork)}
+                        className={cn(
+                          "flex flex-col items-center p-2 rounded-lg text-[10px] font-medium transition-all duration-200 border relative overflow-hidden",
+                          selectedNetwork === networkKey
+                            ? "border-blue-400/50 shadow-md"
+                            : "border-transparent hover:bg-white/5"
+                        )}
+                        style={{
+                          backgroundColor: selectedNetwork === networkKey 
+                            ? 'var(--figma-cta1-bg)' 
+                            : 'var(--glass-bg-secondary)',
+                          color: selectedNetwork === networkKey 
+                            ? 'var(--figma-cta1-text)' 
+                            : 'var(--page-text-primary)',
+                        }}
+                      >
+                        {/* Network Indicator */}
+                        <div 
+                          className={cn(
+                            "w-2 h-2 rounded-full mb-1",
+                            networkKey.includes('base') ? "bg-blue-500" : "bg-green-500"
+                          )}
+                        />
+                        
+                        {/* Network Name */}
+                        <div className="font-semibold text-center leading-tight">
+                          {config.name.replace(' Sepolia', '').replace(' Mainnet', '')}
+                        </div>
+                        
+                        {/* Currency & Chain ID */}
+                        <div className="text-[8px] opacity-70 text-center">
+                          {config.nativeCurrency.symbol} • {config.id}
+                        </div>
+                        
+                        {/* Network Type Badge */}
+                        <div className="mt-1">
+                          {config.isTestnet ? (
+                            <span className="text-[7px] px-1 py-0.5 rounded bg-yellow-500/20 text-yellow-300 font-medium">
+                              TEST
+                            </span>
+                          ) : (
+                            <span className="text-[7px] px-1 py-0.5 rounded bg-red-500/20 text-red-300 font-medium">
+                              MAIN
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Selected Indicator */}
+                        {selectedNetwork === networkKey && (
+                          <div className="absolute top-1 right-1">
+                            <Check className="h-2.5 w-2.5" />
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  {/* Info Note */}
+                  <div className="mt-2 text-center">
+                    <p className="text-[9px]" style={{ color: 'var(--page-text-muted)' }}>
+                      💡 Mainnet = Real funds • Testnets = Safe testing
+                    </p>
                   </div>
                 </div>
               )}
@@ -301,38 +570,91 @@ export function WalletOperationsModal({
                     />
                   </div>
                   
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium" style={{ color: 'var(--page-text-primary)' }}>
-                      Amount (CELO)
+                  <div className="space-y-3">
+                    <label className="text-sm font-semibold" style={{ color: 'var(--page-text-primary)' }}>
+                      Amount ({networkConfig.nativeCurrency.symbol})
                     </label>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        placeholder="0.00"
-                        value={sendAmount}
-                        onChange={(e) => setSendAmount(e.target.value)}
-                        step="0.001"
-                        min="0"
-                        max={displayBalance.toString()}
-                        style={{
+
+                    {/* Enhanced Amount Input */}
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <div className="flex items-center rounded-lg border overflow-hidden" style={{
                           backgroundColor: 'var(--glass-bg-tertiary)',
                           borderColor: 'var(--glass-border)',
-                          color: 'var(--page-text-primary)'
-                        }}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 h-6 px-2 text-xs"
-                        onClick={() => setSendAmount(displayBalance.toString())}
-                        style={{ color: 'var(--page-text-muted)' }}
-                      >
-                        Max
-                      </Button>
+                        }}>
+                          {/* Decrement Button */}
+                          <button
+                            onClick={decrementAmount}
+                            disabled={!sendAmount || parseFloat(sendAmount) <= 0}
+                            className="flex items-center justify-center w-10 h-10 transition-all hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{ color: 'var(--page-text-primary)' }}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </button>
+
+                          {/* Amount Input */}
+                          <Input
+                            type="number"
+                            placeholder="0.00"
+                            value={sendAmount}
+                            onChange={(e) => setSendAmount(e.target.value)}
+                            step="0.001"
+                            min="0"
+                            max={displayBalance.toString()}
+                            className="flex-1 border-0 text-center text-lg font-mono bg-transparent focus:ring-0 focus:outline-none"
+                            style={{
+                              color: 'var(--page-text-primary)',
+                              backgroundColor: 'transparent'
+                            }}
+                          />
+
+                          {/* Increment Button */}
+                          <button
+                            onClick={incrementAmount}
+                            disabled={parseFloat(sendAmount || '0') >= displayBalance}
+                            className="flex items-center justify-center w-10 h-10 transition-all hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{ color: 'var(--page-text-primary)' }}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Preset Amount Buttons */}
+                      <div className="grid grid-cols-4 gap-2">
+                        {[
+                          { label: '25%', percentage: 0.25 },
+                          { label: '50%', percentage: 0.5 },
+                          { label: '75%', percentage: 0.75 },
+                          { label: 'Max', percentage: 1 },
+                        ].map(({ label, percentage }) => (
+                          <button
+                            key={label}
+                            onClick={() => setPresetAmount(percentage)}
+                            className="px-3 py-2 text-xs font-medium rounded-md transition-all hover:scale-105 border"
+                            style={{
+                              backgroundColor: 'var(--glass-bg-secondary)',
+                              borderColor: 'var(--glass-border)',
+                              color: 'var(--page-text-secondary)',
+                            }}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Balance Info */}
+                      <div className="flex items-center justify-between text-xs">
+                        <span style={{ color: 'var(--page-text-muted)' }}>
+                          Available: {displayBalance.toFixed(4)} {networkConfig.nativeCurrency.symbol}
+                        </span>
+                        {sendAmount && (
+                          <span style={{ color: 'var(--page-text-secondary)' }}>
+                            ≈ ${(parseFloat(sendAmount) * 2500).toLocaleString('en-US', { maximumFractionDigits: 2 })} USD
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-[10px]" style={{ color: 'var(--page-text-muted)' }}>
-                      Available: {displayBalance.toFixed(3)} {networkConfig.nativeCurrency.symbol}
-                    </p>
                   </div>
 
                   <Button
@@ -363,11 +685,49 @@ export function WalletOperationsModal({
 
             {/* Receive Tab */}
             <TabsContent value="receive" className="space-y-4 mt-0">
+              {/* Transaction Status Display */}
+              {txStatus && (
+                <Card style={{ backgroundColor: 'var(--glass-bg-secondary)', borderColor: 'var(--glass-border)' }}>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      {txStatus === 'pending' && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {txStatus === 'confirmed' && <Check className="h-4 w-4 text-green-500" />}
+                      {txStatus === 'failed' && <X className="h-4 w-4 text-red-500" />}
+                      Transaction Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="text-sm">
+                      Status: <span className="font-mono text-xs">
+                        {txStatus === 'pending' && '⏳ Pending...'}
+                        {txStatus === 'confirmed' && '✅ Confirmed'}
+                        {txStatus === 'failed' && '❌ Failed'}
+                      </span>
+                    </div>
+                    {txReceipt && (
+                      <div className="text-xs space-y-1" style={{ color: 'var(--page-text-secondary)' }}>
+                        <p>Block: {parseInt(txReceipt.blockNumber, 16).toLocaleString()}</p>
+                        <p>
+                          <a 
+                            href={`${networkConfig.explorer}/tx/${txReceipt.transactionHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:underline flex items-center gap-1"
+                          >
+                            View on Explorer <ExternalLink className="h-3 w-3" />
+                          </a>
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               <Card style={{ backgroundColor: 'var(--glass-bg-secondary)', borderColor: 'var(--glass-border)' }}>
                 <CardHeader>
-                  <CardTitle className="text-base">Receive CELO</CardTitle>
+                  <CardTitle className="text-base">Receive {networkConfig.nativeCurrency.symbol}</CardTitle>
                   <CardDescription className="text-xs">
-                    Share your wallet address to receive CELO
+                    Share your wallet address to receive {networkConfig.nativeCurrency.symbol}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -431,9 +791,9 @@ export function WalletOperationsModal({
             <TabsContent value="onramp" className="space-y-4 mt-0">
               <Card style={{ backgroundColor: 'var(--glass-bg-secondary)', borderColor: 'var(--glass-border)' }}>
                 <CardHeader>
-                  <CardTitle className="text-base">Buy CELO</CardTitle>
+                  <CardTitle className="text-base">Buy {networkConfig.nativeCurrency.symbol}</CardTitle>
                   <CardDescription className="text-xs">
-                    Purchase CELO with fiat currency using Coinbase Pay
+                    Purchase {networkConfig.nativeCurrency.symbol} with fiat currency using Coinbase Pay
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -445,7 +805,7 @@ export function WalletOperationsModal({
                           Coinbase Pay
                         </p>
                         <p className="text-xs" style={{ color: 'var(--page-text-secondary)' }}>
-                          Buy CELO directly with your credit card or bank account. Funds will be sent to your wallet address.
+                          Buy {networkConfig.nativeCurrency.symbol} directly with your credit card or bank account. Funds will be sent to your wallet address.
                         </p>
                       </div>
                     </div>
@@ -478,13 +838,14 @@ export function WalletOperationsModal({
 
                   <div className="p-3 rounded-lg border border-yellow-500/20" style={{ backgroundColor: 'rgba(234, 179, 8, 0.1)' }}>
                     <p className="text-xs" style={{ color: 'var(--page-text-secondary)' }}>
-                      <strong style={{ color: 'var(--page-text-primary)' }}>Note:</strong> Make sure you're purchasing CELO on Celo Sepolia testnet. Mainnet purchases won't appear in this wallet.
+                      <strong style={{ color: 'var(--page-text-primary)' }}>Note:</strong> Make sure you're purchasing {networkConfig.nativeCurrency.symbol} on {networkConfig.name} testnet. Mainnet purchases won't appear in this wallet.
                     </p>
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
-          </Tabs>
+            </Tabs>
+          )}
         </div>
       </div>
     </div>

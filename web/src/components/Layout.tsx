@@ -6,15 +6,23 @@ import { Moon, Sun, Sparkles, Bookmark, Mail, LogOut, Wallet, Copy, Check } from
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../contexts/AuthContext';
 import { useWalletStatus } from '../hooks/useWalletStatus';
+import { useNetwork } from '../contexts/NetworkContext';
+import { NetworkSelector } from './NetworkSelector';
 import { useToast } from './useToast';
+import { WalletOperationsModal } from './WalletOperationsModal';
+import { NETWORKS } from '@/config/chains';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const { isAuthenticated, login, logout, userEmail } = useAuth();
-  const { hasWallet, evmAddress, isLoading: walletLoading } = useWalletStatus();
+  const { selectedNetwork, setNetwork } = useNetwork();
+  const { hasWallet, evmAddress, isLoading: walletLoading, balance: celoBalance, isLoadingBalance, connectionTimeout } = useWalletStatus();
   const { showToast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  
+  const currentNetwork = NETWORKS[selectedNetwork];
 
   const handleCopyAddress = () => {
     if (evmAddress) {
@@ -25,19 +33,15 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     }
   };
 
-  // Format ETH balance - show up to 0.005 precision
+  // Format Balance based on network symbol
   const formatBalance = (balance: number): string => {
-    if (balance === 0) return '0.00 ETH';
+    const symbol = currentNetwork.nativeCurrency.symbol;
+    if (balance === 0) return `0.00 ${symbol}`;
     if (balance < 0.005) {
-      // Show more decimals for small balances
-      return `${balance.toFixed(5)} ETH`;
+      return `${balance.toFixed(5)} ${symbol}`;
     }
-    // Show 2-3 decimals for larger balances
-    return `${balance.toFixed(3)} ETH`;
+    return `${balance.toFixed(3)} ${symbol}`;
   };
-
-  // Mock balance - replace with real balance fetch later
-  const ethBalance = 0.00;
 
   return (
     <div className="min-h-screen w-full bg-[var(--background)] text-[var(--foreground)] font-sans antialiased">
@@ -93,14 +97,25 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
+                {/* Network Selector */}
+                <NetworkSelector />
+
                 {/* User Profile & Wallet Info Container */}
                 <div 
-                  className="group relative flex items-center h-9 pl-1 pr-2 sm:pr-3 rounded-full transition-all duration-300 min-w-[120px] sm:min-w-[140px] md:min-w-[180px] gap-1.5 sm:gap-2"
+                  className="group relative flex items-center h-9 pl-1 pr-2 sm:pr-3 rounded-full transition-all duration-300 min-w-[120px] sm:min-w-[140px] md:min-w-[180px] gap-1.5 sm:gap-2 cursor-pointer"
                   style={{
                     backgroundColor: 'var(--glass-bg-secondary)',
                     backdropFilter: 'blur(var(--glass-blur)) saturate(180%)',
                     WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(180%)',
                     boxShadow: 'var(--glass-shadow)',
+                  }}
+                  onClick={() => {
+                    if (hasWallet && !walletLoading) {
+                      setIsWalletModalOpen(true)
+                    } else if (!hasWallet && !walletLoading && isAuthenticated) {
+                      // Show wallet creation options
+                      setIsWalletModalOpen(true)
+                    }
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = 'var(--glass-bg-primary)'
@@ -130,10 +145,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                       <Wallet className="h-3.5 w-3.5" />
                     </div>
                     
-                    {/* ETH Balance - Always visible */}
+                    {/* CELO Balance - Always visible */}
                     {hasWallet && !walletLoading && (
                       <span className="text-xs font-semibold whitespace-nowrap pr-1" style={{ color: 'var(--page-text-secondary)' }}>
-                        {formatBalance(ethBalance)}
+                        {isLoadingBalance ? '...' : formatBalance(celoBalance)}
                       </span>
                     )}
                   </div>
@@ -171,7 +186,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                       </>
                     ) : (
                       <span className="text-xs font-medium truncate" style={{ color: 'var(--page-text-secondary)' }}>
-                        Connecting...
+                        {connectionTimeout ? 'No Wallet' : walletLoading ? 'Connecting...' : 'No Wallet'}
                       </span>
                     )}
                   </div>
@@ -220,6 +235,19 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       <main className="w-full">
         {children}
       </main>
+
+      {/* Wallet Operations Modal */}
+      {isAuthenticated && (
+        <WalletOperationsModal
+          isOpen={isWalletModalOpen}
+          onClose={() => setIsWalletModalOpen(false)}
+          evmAddress={evmAddress}
+          balance={celoBalance}
+          selectedNetwork={selectedNetwork}
+          onNetworkChange={setNetwork}
+          needsWalletCreation={!hasWallet}
+        />
+      )}
     </div>
   );
 };

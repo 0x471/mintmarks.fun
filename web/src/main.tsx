@@ -3,12 +3,20 @@ import { createRoot } from 'react-dom/client';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { CDPReactProvider, type Config } from '@coinbase/cdp-react';
 import { AuthProvider } from './contexts/AuthContext';
+import { NetworkProvider } from './contexts/NetworkContext';
 import './index.css';
 import App from './App.tsx';
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-const cdpProjectId = import.meta.env.VITE_CDP_PROJECT_ID || 'test-project-12345';
+const cdpProjectId = import.meta.env.VITE_CDP_PROJECT_ID; // Removed fallback to prevent accidental wallet creation on test project
 const cdpAppName = import.meta.env.VITE_CDP_APP_NAME || 'mintmarks';
+
+// ✅ Best Practice: Environment variable validation
+if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+  if (!cdpProjectId) {
+    console.error('[CDP] ❌ VITE_CDP_PROJECT_ID is not set. Application will not start.');
+  }
+}
 
 // Detect MetaMask or other wallet extensions
 const detectExternalWallet = (): boolean => {
@@ -53,7 +61,7 @@ if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
   }
 }
 
-const ErrorMessage = () => (
+const ErrorMessage = ({ missingVar }: { missingVar: string }) => (
   <div style={{
     display: 'flex',
     flexDirection: 'column',
@@ -65,13 +73,13 @@ const ErrorMessage = () => (
     textAlign: 'center'
   }}>
     <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', color: '#dc2626' }}>
-      Google OAuth Configuration Missing
+      Configuration Missing
     </h1>
     <p style={{ marginBottom: '1rem', color: '#525252' }}>
-      VITE_GOOGLE_CLIENT_ID is not set in your .env file.
+      {missingVar} is not set in your .env file.
     </p>
     <p style={{ color: '#737373', fontSize: '0.875rem' }}>
-      Please add VITE_GOOGLE_CLIENT_ID to your .env file and restart the development server.
+      Please add {missingVar} to your .env file and restart the development server.
     </p>
   </div>
 );
@@ -120,18 +128,22 @@ const CDPProviderWrapper = ({ children }: { children: React.ReactNode }) => {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {googleClientId ? (
+    {!googleClientId ? (
+      <ErrorMessage missingVar="VITE_GOOGLE_CLIENT_ID" />
+    ) : !cdpProjectId ? (
+      <ErrorMessage missingVar="VITE_CDP_PROJECT_ID" />
+    ) : (
       <GoogleOAuthProvider clientId={googleClientId}>
         <AuthProvider>
-          <CDPProviderWrapper>
-            <CDPReactProvider config={cdpConfig}>
-              <App />
-            </CDPReactProvider>
-          </CDPProviderWrapper>
+          <NetworkProvider>
+            <CDPProviderWrapper>
+              <CDPReactProvider config={cdpConfig as Config}>
+                <App />
+              </CDPReactProvider>
+            </CDPProviderWrapper>
+          </NetworkProvider>
         </AuthProvider>
       </GoogleOAuthProvider>
-    ) : (
-      <ErrorMessage />
     )}
   </StrictMode>
 );
