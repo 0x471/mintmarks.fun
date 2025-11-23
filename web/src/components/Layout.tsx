@@ -67,28 +67,27 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
-                {/* User Profile & Wallet Info - Glassmorphic Design */}
+                {/* User Profile & Wallet Info - Clean Design */}
                 <div 
                   className="group relative flex items-center h-9 pl-2 pr-3 rounded-full transition-all duration-300 cursor-default min-w-[140px] sm:min-w-[200px]"
                   style={{
                     backgroundColor: 'var(--glass-bg-secondary)',
-                    border: '1px solid var(--glass-border)',
                     backdropFilter: 'blur(var(--glass-blur)) saturate(180%)',
                     WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(180%)',
                     boxShadow: 'var(--glass-shadow)',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = 'var(--glass-bg-primary)'
-                    e.currentTarget.style.borderColor = 'var(--page-border-color)'
+                    e.currentTarget.style.boxShadow = 'var(--glass-shadow-hover)'
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'var(--glass-bg-secondary)'
-                    e.currentTarget.style.borderColor = 'var(--glass-border)'
+                    e.currentTarget.style.boxShadow = 'var(--glass-shadow)'
                   }}
                 >
                   {/* Wallet Icon - Round, Gray when not connected, Green when connected */}
                   <div 
-                    className={`flex items-center justify-center h-6 w-6 rounded-full mr-2 transition-all duration-300 shrink-0 ${
+                    className={`flex items-center justify-center h-6 w-6 rounded-full mr-2.5 transition-all duration-300 shrink-0 ${
                       hasWallet && !walletLoading 
                         ? 'bg-green-500/15 text-green-500 dark:text-green-400 shadow-[0_0_12px_rgba(34,197,94,0.25)]' 
                         : 'bg-gray-500/10 text-gray-500 dark:text-gray-400'
