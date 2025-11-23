@@ -51,6 +51,9 @@ contract Mintmarks is ERC1155, Ownable {
     /// @notice Mapping from email nullifier to whether it's been used
     mapping(bytes32 => bool) public usedNullifiers;
 
+    /// @notice Mapping from token ID to metadata URI (stored on-chain)
+    mapping(uint256 => string) private _tokenURIs;
+
     // ============ Structs ============
 
     /**
@@ -120,6 +123,34 @@ contract Mintmarks is ERC1155, Ownable {
      */
     function symbol() public pure returns (string memory) {
         return "MRK";
+    }
+
+    /**
+     * @notice Returns the metadata URI for a specific token
+     * @param tokenId The token ID to query
+     * @return The metadata URI (IPFS or HTTP)
+     * @dev Overrides ERC1155 uri() to support per-token URIs stored on-chain
+     */
+    function uri(uint256 tokenId) public view override returns (string memory) {
+        string memory tokenURI = _tokenURIs[tokenId];
+
+        // If token has a specific URI set, return it
+        if (bytes(tokenURI).length > 0) {
+            return tokenURI;
+        }
+
+        // Otherwise fall back to base URI with {id} substitution
+        return super.uri(tokenId);
+    }
+
+    /**
+     * @notice Set metadata URI for a specific token (only owner)
+     * @param tokenId The token ID
+     * @param metadataURI The IPFS or HTTP URI for metadata
+     * @dev Used to set decentralized metadata URIs for each collection
+     */
+    function setTokenURI(uint256 tokenId, string memory metadataURI) external onlyOwner {
+        _tokenURIs[tokenId] = metadataURI;
     }
 
     // ============ Core Functions ============
