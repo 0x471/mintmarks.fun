@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { useSendEvmTransaction, useEvmAddress, useSignInWithEmail, useVerifyEmailOTP } from '@coinbase/cdp-hooks'
-import { parseEther } from 'viem'
+import { useSendEvmTransaction, useEvmAddress, useSignInWithEmail, useVerifyEmailOTP, useSignEvmTransaction } from '@coinbase/cdp-hooks'
+import { parseEther, createPublicClient, http, parseGwei } from 'viem'
+import { celo, celoSepolia } from 'viem/chains'
 import { useEvmBalance } from '@/hooks/useEvmBalance'
 import { useTransactionStatus } from '@/hooks/useTransactionStatus'
 import { NETWORKS, type SupportedNetwork } from '@/config/chains'
@@ -37,6 +38,7 @@ export function WalletOperationsModal({
   const { userEmail } = useAuth()
   const { evmAddress: hookAddress } = useEvmAddress()
   const { sendEvmTransaction } = useSendEvmTransaction()
+  const { signEvmTransaction } = useSignEvmTransaction()
   const { signInWithEmail } = useSignInWithEmail()
   const { verifyEmailOTP } = useVerifyEmailOTP()
   const [selectedNetwork, setSelectedNetwork] = useState<SupportedNetwork>(propSelectedNetwork)
@@ -57,6 +59,13 @@ export function WalletOperationsModal({
   const [isSending, setIsSending] = useState(false)
   const [copied, setCopied] = useState(false)
   const [qrCode, setQrCode] = useState<string | null>(null)
+
+  // Sync internal state with prop changes if using external network control
+  useEffect(() => {
+    if (propSelectedNetwork) {
+      setSelectedNetwork(propSelectedNetwork)
+    }
+  }, [propSelectedNetwork])
 
   const walletAddress = evmAddress || hookAddress
   const displayBalance = balance || networkBalance || 0
@@ -83,7 +92,6 @@ export function WalletOperationsModal({
   }
 
   const handleNetworkChange = (network: SupportedNetwork) => {
-    setSelectedNetwork(network)
     propOnNetworkChange?.(network)
     // Clear any existing transaction status when switching networks
     clearStatus()
@@ -122,6 +130,78 @@ export function WalletOperationsModal({
       showToast('Address copied to clipboard', 'success')
       setTimeout(() => setCopied(false), 2000)
     }
+  }
+
+  const handleCeloTransaction = async (
+    to: string,
+    amountStr: string,
+    networkConfig: typeof NETWORKS[SupportedNetwork]
+  ) => {
+    const targetChain = networkConfig.cdpNetwork === 'celo-sepolia' ? celoSepolia : celo
+    
+    // Initialize viem client
+    const client = createPublicClient({
+      chain: targetChain,
+      transport: http()
+    })
+
+    // 0. Estimate gas fees but use AGGRESSIVE values for Celo Sepolia
+    // Celo requires explicit feeCurrency or solid EIP-1559 params to avoid "underpriced" error
+    // We use null for feeCurrency to use native CELO
+    const gasPrice = await client.estimateFeesPerGas()
+    
+    // Aggressive bump: 10 Gwei priority fee (minimum is usually ~2-3 Gwei but we want to be safe)
+    const safePriorityFee = parseGwei('10') 
+    // Max fee = Base Fee * 2 + Priority Fee (Standard EIP-1559 calculation)
+    const safeMaxFee = (gasPrice.maxFeePerGas || parseGwei('20')) + safePriorityFee
+
+    console.log('[Wallet] ⛽️ Celo Gas Params:', {
+      maxFeePerGas: safeMaxFee.toString(),
+      maxPriorityFeePerGas: safePriorityFee.toString(),
+      feeCurrency: 'null'
+    })
+
+    // 1. Sign the transaction using CDP SDK
+    const { signedTransaction } = await signEvmTransaction({
+      evmAccount: walletAddress as `0x${string}`,
+      transaction: {
+        to: to as `0x${string}`,
+        value: parseEther(amountStr),
+        gas: 21000n,
+        chainId: networkConfig.id,
+        // @ts-ignore - Allow explicit gas params for Celo
+        maxFeePerGas: safeMaxFee,
+        // @ts-ignore - Allow explicit gas params for Celo
+        maxPriorityFeePerGas: safePriorityFee,
+        type: "eip1559",
+        // @ts-ignore - Celo specific field, explicitly set to null to use CELO
+        feeCurrency: null, 
+      }
+    })
+
+    // 2. Broadcast using viem client
+    const transactionHash = await client.sendRawTransaction({
+      serializedTransaction: signedTransaction as `0x${string}`
+    })
+
+    console.log('[Wallet] ✅ Celo Transaction broadcasted:', transactionHash)
+
+    // 3. Wait for confirmation (since SDK won't track this automatically)
+    // Start async monitoring
+    client.waitForTransactionReceipt({ hash: transactionHash })
+      .then((receipt) => {
+         if (receipt.status === 'success') {
+           showToast('Transaction confirmed on Celo!', 'success')
+           refetchBalance()
+         } else {
+           showToast('Transaction failed on chain', 'error')
+         }
+      })
+      .catch((err) => {
+        console.error('Error waiting for receipt:', err)
+      })
+
+    return { transactionHash }
   }
 
   const handleSend = async () => {
@@ -165,17 +245,27 @@ export function WalletOperationsModal({
       })
 
       // Use CDP React Hooks - follow official documentation exactly
-      const result = await sendEvmTransaction({
-        transaction: {
-          to: sendToAddress as `0x${string}`,           // Type cast for viem
-          value: parseEther(amount.toString()),
-          gas: 21000n,                                  // Standard ETH transfer gas limit
-          chainId: networkConfig.id,                    // Network chain ID
-          type: "eip1559",                             // Modern gas fee model (string format!)
-        },
-        evmAccount: walletAddress as `0x${string}`,    // Type cast for CDP
-        network: networkConfig.cdpNetwork as any,      // Type cast for CDP network enum
-      })
+      let result;
+      
+      // Custom logic for Celo/Celo Sepolia (Unsupported by SDK directly)
+      // Official pattern: Sign & Broadcast
+      if (networkConfig.cdpNetwork === 'celo-sepolia' || networkConfig.cdpNetwork === 'celo') {
+        result = await handleCeloTransaction(sendToAddress, sendAmount, networkConfig)
+      } else {
+        // Standard flow for Base/Base Sepolia
+        result = await sendEvmTransaction({
+          transaction: {
+            to: sendToAddress as `0x${string}`,
+            value: parseEther(amount.toString()),
+            gas: 21000n,
+            chainId: networkConfig.id,
+            type: "eip1559",
+          },
+          evmAccount: walletAddress as `0x${string}`,
+          // @ts-ignore - We know the network string is valid but types might be outdated
+          network: networkConfig.cdpNetwork,
+        })
+      }
 
       console.log('[Wallet] ✅ EOA Transaction submitted via React Hooks:', result.transactionHash)
       
@@ -335,12 +425,12 @@ export function WalletOperationsModal({
                   <Wallet className="w-8 h-8 text-blue-400" />
                 </div>
                 <h3 className="text-lg font-semibold" style={{ color: 'var(--page-text-primary)' }}>
-                  {showOtpInput ? 'Verify Email' : 'Create Your Wallet'}
+                  {showOtpInput ? 'Verify Email' : 'Connect Your Wallet'}
                 </h3>
                 <p className="text-sm" style={{ color: 'var(--page-text-secondary)' }}>
                   {showOtpInput 
                     ? `Enter the verification code sent to ${userEmail}`
-                    : 'Set up a secure Coinbase embedded wallet to send, receive, and manage your crypto.'
+                    : 'Connect your secure Coinbase embedded wallet to send, receive, and manage your crypto.'
                   }
                 </p>
               </div>
@@ -400,12 +490,12 @@ export function WalletOperationsModal({
                       {isCreatingWallet ? (
                         <>
                           <Loader2 className="h-5 w-5 animate-spin" />
-                          Creating Wallet...
+                          Connecting...
                         </>
                       ) : (
                         <>
                           <Check className="h-5 w-5" />
-                          Verify & Create Wallet
+                          Verify & Connect
                         </>
                       )}
                     </Button>
@@ -430,14 +520,14 @@ export function WalletOperationsModal({
                     ) : (
                       <>
                         <Wallet className="h-5 w-5" />
-                        Create Wallet & Start Minting
+                        Connect Wallet & Start Minting
                       </>
                     )}
                   </Button>
                 )}
 
                 <p className="text-xs text-center" style={{ color: 'var(--page-text-muted)' }}>
-                  Your wallet will be created securely using Coinbase's embedded wallet infrastructure
+                  Your wallet will be connected securely using Coinbase's embedded wallet infrastructure
                 </p>
               </div>
             </div>
@@ -478,7 +568,10 @@ export function WalletOperationsModal({
                   {/* Info Note */}
                   <div className="mt-2 text-center">
                     <p className="text-[9px]" style={{ color: 'var(--page-text-muted)' }}>
-                      💡 Mainnet = Real funds • Testnets = Safe testing
+                      {selectedNetwork === 'celo' || selectedNetwork === 'base' 
+                        ? '💡 Mainnet = Real funds' 
+                        : '💡 Testnet = Safe testing'
+                      }
                     </p>
                   </div>
                 </div>
