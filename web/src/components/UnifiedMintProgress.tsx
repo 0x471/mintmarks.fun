@@ -564,52 +564,26 @@ export function UnifiedMintProgress({
                   </div>
                 )}
 
-                {/* Epoch Progress - Segmented Design */}
+                {/* Linear Progress Bar */}
                 <div className="space-y-3 pt-3">
                   <div className="flex items-center justify-between text-[10px]">
                     <span className="text-muted-foreground font-medium">Progress</span>
                     <span className="font-bold text-primary">{currentProgress}%</span>
                   </div>
                   
-                  {/* Segmented Progress Bar */}
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {[
-                      { label: 'Proof Generation', range: [0, 33] },
-                      { label: 'Connect Wallet', range: [34, 66] },
-                      { label: 'Mint Complete', range: [67, 100] }
-                    ].map((segment, i) => {
-                      const isComplete = currentProgress >= segment.range[1];
-                      const isActive = currentProgress > segment.range[0] && currentProgress < segment.range[1];
-                      const isPending = currentProgress <= segment.range[0];
-                      
-                      return (
-                        <div key={i} className="flex flex-col gap-1.5 group">
-                          {/* Bar Segment */}
-                          <div className="relative h-1.5 w-full bg-muted/30 rounded-full overflow-hidden">
-                            <div 
-                              className={cn(
-                                "absolute inset-0 transition-all duration-500 ease-out rounded-full",
-                                isComplete ? "bg-primary" : 
-                                isActive ? "bg-primary w-full animate-pulse" : 
-                                "bg-transparent"
-                              )}
-                              style={{
-                                width: isComplete ? '100%' : isActive ? '100%' : '0%',
-                                opacity: isActive ? 0.6 : 1
-                              }}
-                            />
-                          </div>
-                          
-                          {/* Segment Label */}
-                          <span className={cn(
-                            "text-[9px] font-medium transition-colors duration-300 truncate",
-                            isComplete || isActive ? "text-primary" : "text-muted-foreground/50"
-                          )}>
-                            {segment.label}
-                          </span>
-                        </div>
-                      );
-                    })}
+                  {/* Single Linear Bar */}
+                  <div className="relative h-2 w-full bg-muted/30 rounded-full overflow-hidden">
+                    <div 
+                      className="absolute inset-y-0 left-0 bg-primary transition-all duration-700 ease-out rounded-full shadow-[0_0_10px_rgba(var(--primary),0.3)]"
+                      style={{ width: `${currentProgress}%` }}
+                    />
+                  </div>
+
+                  {/* Steps Labels */}
+                  <div className="flex justify-between text-[9px] text-muted-foreground font-medium px-1">
+                    <span className={cn(currentProgress >= 33 ? "text-primary" : "")}>Proof Generation</span>
+                    <span className={cn(currentProgress >= 66 ? "text-primary" : "")}>Connect Wallet</span>
+                    <span className={cn(currentProgress >= 100 ? "text-primary" : "")}>Mint Complete</span>
                   </div>
                   
                   {/* Expandable Steps Button */}
