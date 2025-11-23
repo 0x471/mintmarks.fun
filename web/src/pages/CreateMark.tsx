@@ -32,7 +32,7 @@ export default function CreateMark() {
   const [searchParams] = useSearchParams()
   const { accessToken, isAuthenticated, handleTokenExpiration, userEmail } = useAuth()
   const { showToast } = useToast()
-  
+
   // CDP Wallet hooks
   const walletStatus = useWalletStatus()
   const { signInWithEmail } = useSignInWithEmail()
@@ -421,8 +421,8 @@ export default function CreateMark() {
         setProof(mockProof)
         setProofStatus('completed')
         addLog('Proof generation complete! Ready to mint.')
-        return
-      }
+      return
+    }
 
       // Real Proof Generation
       if (!accessToken) throw new Error('No access token')
@@ -490,7 +490,7 @@ export default function CreateMark() {
   // ✅ Best Practice: Comprehensive error handling, user state verification, flow ID management
   const handleConnectCDPWallet = async () => {
     try {
-      setError(null)
+    setError(null)
       
       // ✅ Best Practice: SDK initialization check
       if (!walletStatus.isInitialized) {
@@ -543,7 +543,7 @@ export default function CreateMark() {
         }
         
         setIsVerifyingOtp(true)
-        setUnifiedStep('wallet-connecting')
+    setUnifiedStep('wallet-connecting')
         
         try {
           console.log('[CDP] Verifying OTP, flowId:', flowId)
@@ -558,7 +558,7 @@ export default function CreateMark() {
               isNewUser,
             })
             setWalletAddress(address)
-            setUnifiedStep('wallet-connected')
+      setUnifiedStep('wallet-connected')
             setShowOtpInput(false)
             setOtpCode('')
             setFlowId(null)
@@ -656,7 +656,7 @@ export default function CreateMark() {
       setWalletAddress(walletStatus.evmAddress)
       if (unifiedStep === 'wallet-connecting' || unifiedStep === 'wallet-prompt') {
         setUnifiedStep('wallet-connected')
-        setTimeout(() => {
+    setTimeout(() => {
           setUnifiedStep('self-id-prompt')
         }, 500)
       }
@@ -887,7 +887,7 @@ export default function CreateMark() {
               <span className="block mt-2" style={{ color: 'var(--Controls-Selected)' }}>
                 Unlocked.
               </span>
-            </h1>
+          </h1>
             
             {/* Description */}
             <div className="mb-4 sm:mb-6">
@@ -903,7 +903,7 @@ export default function CreateMark() {
             </div>
           </div>
         </header>
-      </div>
+        </div>
 
       {/* Main content */}
       <div className="max-w-6xl mx-auto px-4 pb-4 sm:px-6 sm:pb-8 md:pb-12 relative z-10 flex flex-col min-h-[calc(100vh-300px)]">
@@ -928,7 +928,7 @@ export default function CreateMark() {
             </CardContent>
           </Card>
         ) : (
-        <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)} className="w-full">
+            <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)} className="w-full">
           <TabsContent value="gmail" className="space-y-4">
             <>
                 {fetchingEmails && (
@@ -997,33 +997,33 @@ export default function CreateMark() {
                       {/* Email Source Filter */}
                       <div className="flex flex-wrap items-center justify-between gap-3 pt-1 flex-shrink-0">
                         <div className="flex flex-wrap items-center gap-3">
-                          <Button
+                    <Button
                             variant={emailFilter === 'all' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setEmailFilter('all')}
+                      size="sm"
+                      onClick={() => setEmailFilter('all')}
                             className="h-9 text-xs sm:text-sm font-semibold"
-                          >
+                    >
                             All ({lumaEmails.length})
-                          </Button>
-                          <Button
+                    </Button>
+                    <Button
                             variant={emailFilter === 'luma' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setEmailFilter('luma')}
+                      size="sm"
+                      onClick={() => setEmailFilter('luma')}
                             className="h-9 text-xs sm:text-sm font-semibold gap-1.5"
-                          >
+                    >
                             <Sparkles className="h-3.5 w-3.5" />
                             Luma ({lumaEmails.filter(e => getEmailSource(e) === 'luma').length})
-                          </Button>
-                          <Button
+                    </Button>
+                    <Button
                             variant={emailFilter === 'substack' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setEmailFilter('substack')}
+                      size="sm"
+                      onClick={() => setEmailFilter('substack')}
                             className="h-9 text-xs sm:text-sm font-semibold gap-1.5"
-                          >
+                    >
                             <Bookmark className="h-3.5 w-3.5" />
                             Substack ({lumaEmails.filter(e => getEmailSource(e) === 'substack').length})
-                          </Button>
-                        </div>
+                    </Button>
+                  </div>
                         
                         {/* Scroll for more indicator */}
                         {visibleEmailsCount < filteredEmails.length && (
@@ -1037,9 +1037,9 @@ export default function CreateMark() {
                             <span className="text-xs sm:text-sm font-medium" style={{ color: 'var(--page-text-muted)' }}>
                               Scroll for more
                             </span>
-                          </div>
+                  </div>
                         )}
-                      </div>
+                </div>
                     </div>
                     
                     {selectedEmail && !isUnifiedFlow && (
@@ -1092,13 +1092,13 @@ export default function CreateMark() {
                                 </h2>
                                 <p className="text-xs sm:text-sm font-medium leading-relaxed" style={{ color: 'var(--page-text-secondary)' }}>
                                   Privately prove your commitment and make it a permanent part of your digital identity.
-                                </p>
-                              </div>
+                  </p>
+                </div>
                               
                               {/* POAP Badge - Already contains event details, tags, title, and description */}
                               <div className="flex justify-center">
                                 <POAPBadge email={selectedEmail} size="md" showVerified={false} />
-                              </div>
+      </div>
 
                               {/* How It Works - Compact */}
                               <div className="pt-1 pb-1">
@@ -1111,8 +1111,8 @@ export default function CreateMark() {
                                     ZK-email proof → Mint on Base
                                   </span>
                                 </div>
-                              </div>
-                              
+              </div>
+
                               {/* Action Buttons */}
                               <div className="pt-2">
                                 <div className="flex flex-col sm:flex-row gap-3 w-full">
@@ -1131,8 +1131,8 @@ export default function CreateMark() {
                                     size="lg"
                                   >
                                     <ArrowLeft className="h-4 w-4" />
-                                    Back
-                                  </Button>
+                  Back
+                </Button>
                                   <Button 
                                     onClick={() => {
                                       // Start unified flow directly
@@ -1145,14 +1145,14 @@ export default function CreateMark() {
                                     <Bookmark className="w-4 h-4" />
                                     Mark It
                                     <ArrowRight className="w-4 h-4" />
-                                  </Button>
-                                </div>
+                </Button>
+              </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+        </div>
+      )}
 
                     {/* Unified Mint Flow Modal - Non-dismissible */}
                     {isUnifiedFlow && unifiedStep && selectedEmail && (
@@ -1189,7 +1189,7 @@ export default function CreateMark() {
                             >
                               <X className="h-4 w-4" />
                             </Button>
-                          </div>
+            </div>
 
                           <div className="relative overflow-y-auto max-h-[90vh] p-6">
                             {unifiedStep === 'mint-complete' ? (
@@ -1243,40 +1243,47 @@ export default function CreateMark() {
                             ) : (
                               /* Progress State */
                               <div className="space-y-6">
-                                {/* Header with POAP & Info - Compact Horizontal Layout */}
+                                {/* Header with POAP & Info - Ultra Compact */}
                                 <div className="flex items-center gap-2 p-2 rounded-lg border" style={{ 
                                   backgroundColor: 'var(--glass-bg-tertiary)',
                                   borderColor: 'var(--glass-border)'
                                 }}>
-                                  {/* POAP Badge - Smaller */}
+                                  {/* POAP Badge */}
                                   <div className="flex-shrink-0 scale-75 origin-left">
                                     <POAPBadge email={selectedEmail} size="sm" showVerified={false} className="shadow-sm" />
                                   </div>
                                   
-                                  {/* Title - Compact */}
-                                  <h3 className="font-semibold text-xs flex-1 truncate" style={{ color: 'var(--page-text-primary)' }}>
-                                    Mint Your Mintmark
-                                  </h3>
+                                  {/* Email Info */}
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-[11px] font-semibold truncate" style={{ color: 'var(--page-text-primary)' }}>
+                                      {selectedEmail?.subject || 'Mint Your Mintmark'}
+                                    </p>
+                                    <p className="text-[9px] text-muted-foreground truncate">
+                                      {selectedEmail?.from || 'Event'} • {selectedEmail?.date ? new Date(selectedEmail.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Today'}
+                                    </p>
+                                  </div>
                                   
-                                  {/* Celo Badge - Compact */}
-                                  <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20 whitespace-nowrap flex-shrink-0">
-                                    Celo
-                                  </span>
-                                  
-                                  {/* ZK-Verified Badge - Compact */}
+                                  {/* Badges */}
                                   <div className="flex items-center gap-1 flex-shrink-0">
-                                    <Shield className="w-2.5 h-2.5 text-green-500" />
-                                    <span className="text-[9px] text-muted-foreground whitespace-nowrap">ZK</span>
+                                    <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20 whitespace-nowrap">
+                                      Celo
+                                    </span>
+                                    <div className="flex items-center gap-0.5 px-1 py-0.5 rounded-full border" style={{ 
+                                      borderColor: 'var(--glass-border)'
+                                    }}>
+                                      <Shield className="w-2.5 h-2.5 text-green-500" />
+                                      <span className="text-[8px] text-muted-foreground whitespace-nowrap">ZK</span>
+                                    </div>
                                   </div>
                                 </div>
 
                                 {/* Unified Progress Component */}
-                                <UnifiedMintProgress
-                                  currentStep={unifiedStep}
+            <UnifiedMintProgress
+              currentStep={unifiedStep}
                                   onConnectCDPWallet={handleConnectCDPWallet}
                                   onConnectExternalWallet={hasExternalWallet ? handleConnectExternalWallet : undefined}
                                   onVerifySelfID={handleVerifySelfID}
-                                  onSignMessage={handleSignMessage}
+              onSignMessage={handleSignMessage}
                                   onPayFee={handlePayFee}
                                   onChangeWallet={() => {
                                     setWalletAddress(null)
@@ -1287,7 +1294,7 @@ export default function CreateMark() {
                                   }}
                                   onClose={handleCloseUnifiedFlow}
                                   walletAddress={walletAddress || undefined}
-                                  error={error}
+              error={error}
                                   showOtpInput={showOtpInput}
                                   otpEmail={userEmail || ''}
                                   otpCode={otpCode}
@@ -1301,9 +1308,9 @@ export default function CreateMark() {
                               </div>
                             )}
                           </div>
-                        </div>
-                      </div>
-                    )}
+          </div>
+        </div>
+      )}
 
                     {filteredEmails.length === 0 ? (
                       <Card className="shadow-lg">
