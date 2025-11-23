@@ -1178,19 +1178,6 @@ export default function CreateMark() {
                             boxShadow: 'var(--glass-shadow)',
                           }}
                         >
-                          {/* Close Button */}
-                          <div className="absolute top-3 right-3 z-50">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 rounded-full transition-colors hover:bg-white/10"
-                              onClick={handleCloseUnifiedFlow}
-                              style={{ color: 'var(--page-text-muted)' }}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-            </div>
-
                           <div className="relative overflow-y-auto max-h-[90vh] p-6">
                             {unifiedStep === 'mint-complete' ? (
                               /* Success State */
@@ -1263,6 +1250,19 @@ export default function CreateMark() {
                                     <Shield className="w-2.5 h-2.5 text-green-500" />
                                     ZK
                                   </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={handleCloseUnifiedFlow}
+                                    className="h-6 w-6 rounded-md border transition-colors"
+                                    style={{
+                                      borderColor: 'var(--glass-border)',
+                                      color: 'var(--page-text-muted)',
+                                      backgroundColor: 'var(--glass-bg-secondary)'
+                                    }}
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </Button>
                                 </div>
 
                                 {/* Unified Progress Component */}
