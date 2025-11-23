@@ -1180,7 +1180,7 @@ export default function CreateMark() {
                         >
                           {/* Header - Sticky Top */}
                           {unifiedStep !== 'mint-complete' && (
-                            <div className="sticky top-0 z-10 px-6 pt-6 pb-4 bg-background/80 backdrop-blur-md border-b border-border/50">
+                            <div className="sticky top-0 z-[102] px-6 pt-6 pb-4 bg-background/95 backdrop-blur-md border-b border-border/50" style={{ backgroundColor: 'var(--glass-bg-primary)' }}>
                               <div className="flex items-start gap-2">
                                 {/* Header - Two Row Compact Design */}
                                 <div className="flex-1 px-2.5 py-2 rounded-xl border backdrop-blur-sm transition-all" style={{ 
