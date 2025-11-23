@@ -513,69 +513,107 @@ export function UnifiedMintProgress({
                 )}
 
                 {/* Epoch Progress */}
-                <div className="space-y-2 pt-2">
+                <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                     <span>Overall Progress</span>
-                    <span>{currentProgress}%</span>
-                  </div>
-                  <div className="relative flex items-center justify-between w-full">
-                     {/* Connecting Line */}
-                     <div className="absolute left-0 top-1/2 w-full h-0.5 bg-muted -z-10" />
-                     <div 
-                        className="absolute left-0 top-1/2 h-0.5 bg-primary transition-all duration-500 -z-10" 
-                        style={{ width: `${currentProgress}%` }}
-                     />
-                     
-                     {/* Epoch Dots */}
-                     {[0, 33, 66, 100].map((pos, i) => (
-                        <div 
-                          key={i}
-                          className={cn(
-                            "w-2.5 h-2.5 rounded-full border-2 transition-all duration-300 z-0",
-                            currentProgress >= pos 
-                              ? "bg-primary border-primary" 
-                              : "bg-background border-muted"
-                          )}
-                        />
-                     ))}
+                    <span className="font-semibold text-foreground">{currentProgress}%</span>
                   </div>
                   
-                  {/* Expandable Steps */}
+                  {/* Epoch Progress Bar with Rounded Lines */}
+                  <div className="relative w-full">
+                    {/* Background Line */}
+                    <div className="absolute left-0 top-1/2 w-full h-1.5 bg-muted/50 rounded-full -translate-y-1/2" />
+                    
+                    {/* Progress Line */}
+                    <div 
+                      className="absolute left-0 top-1/2 h-1.5 bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-700 ease-out -translate-y-1/2 shadow-sm" 
+                      style={{ width: `${currentProgress}%` }}
+                    />
+                    
+                    {/* Epoch Markers */}
+                    <div className="relative flex items-center justify-between w-full">
+                      {[0, 33, 66, 100].map((pos, i) => {
+                        const isCompleted = currentProgress >= pos
+                        return (
+                          <div 
+                            key={i}
+                            className={cn(
+                              "relative flex flex-col items-center transition-all duration-300",
+                              isCompleted ? "z-10" : "z-0"
+                            )}
+                            style={{ left: `${pos}%`, transform: 'translateX(-50%)' }}
+                          >
+                            {/* Epoch Dot */}
+                            <div className={cn(
+                              "w-3 h-3 rounded-full border-2 transition-all duration-300 shadow-sm",
+                              isCompleted 
+                                ? "bg-primary border-primary shadow-primary/20" 
+                                : "bg-background border-muted/50"
+                            )} />
+                            
+                            {/* Epoch Label (Optional - can be shown on hover or when expanded) */}
+                            {isStepsExpanded && (
+                              <span className={cn(
+                                "text-[8px] font-medium mt-1 whitespace-nowrap",
+                                isCompleted ? "text-primary" : "text-muted-foreground/50"
+                              )}>
+                                {pos}%
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  
+                  {/* Expandable Steps Button */}
                   <button
                     onClick={() => setIsStepsExpanded(!isStepsExpanded)}
-                    className="w-full flex items-center justify-between text-[10px] text-muted-foreground hover:text-foreground transition-colors pt-1"
+                    className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg border border-border/40 bg-muted/20 hover:bg-muted/40 transition-all duration-200 text-[10px] text-muted-foreground hover:text-foreground group"
                   >
-                    <span>View detailed steps</span>
-                    {isStepsExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                    <span className="font-medium">View detailed steps</span>
+                    {isStepsExpanded ? (
+                      <ChevronUp className="h-3 w-3 transition-transform" />
+                    ) : (
+                      <ChevronDown className="h-3 w-3 transition-transform group-hover:translate-y-0.5" />
+                    )}
                   </button>
                   
+                  {/* Expanded Detailed Steps */}
                   {isStepsExpanded && (
-                    <div className="space-y-1.5 pt-2 border-t border-border/20 animate-in slide-in-from-top-2">
+                    <div className="space-y-1.5 pt-2 border-t border-border/30 animate-in slide-in-from-top-2 fade-in duration-300">
                       {stepConfigs.map((step) => {
                         const status = getStepStatus(step)
                         return (
                           <div key={step.key} className={cn(
-                              "flex items-center gap-2 p-1.5 rounded transition-all duration-300",
-                              step.key === currentStep ? "bg-primary/5 border border-primary/10" : "hover:bg-muted/20"
+                              "flex items-center gap-2.5 p-2 rounded-lg transition-all duration-200 border",
+                              step.key === currentStep 
+                                ? "bg-primary/5 border-primary/20 shadow-sm" 
+                                : "border-transparent hover:bg-muted/20 hover:border-border/20"
                           )}>
                             <div className="flex-shrink-0 relative">
                                 {status === 'complete' ? (
-                                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                                 ) : step.key === currentStep ? (
-                                  <Loader2 className="h-3 w-3 text-primary animate-spin" />
+                                  <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
                                 ) : (
-                                  <Circle className="h-3 w-3 text-muted-foreground/30" />
+                                  <Circle className="h-3.5 w-3.5 text-muted-foreground/30" />
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className={cn(
-                                  "text-[10px] font-medium truncate",
+                                  "text-[10px] font-medium",
                                   status === 'complete' ? "text-muted-foreground/70" :
-                                  step.key === currentStep ? "text-foreground" :
+                                  step.key === currentStep ? "text-foreground font-semibold" :
                                   "text-muted-foreground/50"
                                 )}>
                                   {step.label}
                                 </p>
+                                {step.key === currentStep && step.description && (
+                                  <p className="text-[9px] text-muted-foreground mt-0.5">
+                                    {step.description}
+                                  </p>
+                                )}
                             </div>
                           </div>
                         )
@@ -600,8 +638,63 @@ export function UnifiedMintProgress({
           )}
         </div>
 
-        {/* Right Column: Detailed Steps - Vertical List */}
+        {/* Right Column: ZK Proof Terminal & Detailed Steps */}
         <div className="space-y-4">
+          {/* ZK Proof Terminal */}
+          {(proofStatus !== 'idle' || proofLogs.length > 0) && (
+            <div className="rounded-xl border border-border/40 bg-black/90 text-green-500 font-mono text-xs p-0 shadow-inner overflow-hidden flex flex-col h-[200px]">
+               <div className="flex items-center justify-between bg-white/5 px-3 py-2 border-b border-white/10">
+                  <div className="flex items-center gap-2">
+                      <Terminal className="h-3 w-3" />
+                      <span className="opacity-70 font-semibold text-[10px]">ZK Proof Logs</span>
+                  </div>
+                  <div className="flex gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-red-500/50"></div>
+                      <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>
+                      <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
+                  </div>
+               </div>
+               <div 
+                  ref={scrollRef}
+                  className="flex-1 overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent p-3 font-mono text-[10px] sm:text-xs leading-relaxed"
+                >
+                  {proofLogs.length === 0 && proofStatus === 'idle' ? (
+                    <div className="flex items-center gap-2 opacity-40 animate-pulse">
+                       <span>_</span>
+                       <span>Waiting to start...</span>
+                    </div>
+                  ) : proofLogs.length === 0 && proofStatus === 'generating' ? (
+                     <div className="flex items-center gap-2 opacity-60">
+                       <Loader2 className="h-3 w-3 animate-spin" />
+                       <span>Initializing proof generation...</span>
+                     </div>
+                  ) : (
+                    proofLogs.map((log, i) => (
+                      <div key={i} className="break-all flex gap-2">
+                        <span className="opacity-40 select-none min-w-[30px]">
+                            {new Date().toLocaleTimeString([], {hour12: false, minute:'2-digit', second:'2-digit'})}
+                        </span>
+                        <span className={cn(
+                            log.includes('ERROR') ? 'text-red-400' : 
+                            log.includes('Successfully') ? 'text-green-400 font-bold' : 
+                            'text-gray-300'
+                        )}>{log}</span>
+                      </div>
+                    ))
+                  )}
+                  {proofStatus === 'generating' && (
+                     <div className="animate-pulse text-green-500/50 mt-1">_ Processing...</div>
+                  )}
+                  {proofStatus === 'completed' && (
+                     <div className="text-green-400 font-bold mt-2 border-t border-white/10 pt-2">
+                        ✨ Proof Generation Complete
+                     </div>
+                  )}
+               </div>
+            </div>
+          )}
+
+          {/* Detailed Steps - Vertical List */}
           <div className="rounded-xl border border-border/40 bg-background/40 backdrop-blur overflow-hidden">
               <div className="px-3 py-2.5 border-b border-border/20 bg-muted/10">
                   <h4 className="text-[10px] font-bold text-foreground/80 uppercase tracking-wider">Detailed Steps</h4>
