@@ -121,8 +121,8 @@ interface UnifiedMintProgressProps {
   onSignMessage?: () => void
   onPayFee?: () => void
   onChangeWallet?: () => void
-  onClose?: () => void
   onShare?: () => void
+  onClose?: () => void
   walletAddress?: string
   error?: string | null
   // Support for OTP flow props
@@ -149,7 +149,6 @@ export function UnifiedMintProgress({
   onSignMessage,
   onPayFee,
   onChangeWallet,
-  onClose: _onClose, // Renamed to indicate it's intentionally unused
   walletAddress,
   error,
   showOtpInput,
@@ -207,36 +206,109 @@ export function UnifiedMintProgress({
 
   return (
     <div className={cn('space-y-4 relative', className)}>
-      {/* Horizontal Timeline - Top */}
-      <div className="flex items-center justify-center gap-2 px-4 py-3 overflow-x-auto no-scrollbar">
-        {phaseGroups.map((group, index) => {
-          const phaseStatus = getPhaseStatus(group.phase)
-          const isActive = phaseStatus === 'active'
-          const isComplete = phaseStatus === 'complete'
-          
-          const PhaseIcon = group.icon
+      {/* Enhanced Horizontal Timeline */}
+      <div className="relative">
+        {/* Progress Line Background */}
+        <div className="absolute top-1/2 left-8 right-8 h-0.5 transform -translate-y-1/2 rounded-full"
+             style={{ backgroundColor: 'var(--glass-border)' }} />
+        
+        {/* Active Progress Line */}
+        <div 
+          className="absolute top-1/2 left-8 h-0.5 transform -translate-y-1/2 rounded-full transition-all duration-1000 ease-out"
+          style={{ 
+            background: 'linear-gradient(90deg, #10b981, #059669)',
+            width: `${Math.min(100, (getCompletedPhases() / (phaseGroups.length - 1)) * 100)}%`,
+            boxShadow: '0 0 8px rgba(16, 185, 129, 0.4)'
+          }} 
+        />
 
-          return (
-            <React.Fragment key={group.phase}>
-              {/* Step Badge */}
-              <div className="flex-shrink-0">
-                <ProgressBadge
-                  label={`${index + 1}. ${group.shortTitle}`}
-                  status={isComplete ? 'complete' : isActive ? 'active' : 'pending'}
-                  icon={PhaseIcon as any}
-                  className="min-w-[100px] sm:min-w-[120px] shadow-sm"
-                />
+        {/* Step Container */}
+        <div className="flex items-center justify-between px-4 py-6 overflow-x-auto no-scrollbar">
+          {phaseGroups.map((group, index) => {
+            const phaseStatus = getPhaseStatus(group.phase)
+            const isActive = phaseStatus === 'active'
+            const isComplete = phaseStatus === 'complete'
+            const PhaseIcon = group.icon
+
+            return (
+              <div key={group.phase} className="flex flex-col items-center flex-shrink-0 relative group">
+                {/* Step Circle */}
+                <div 
+                  className={cn(
+                    "relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 transform group-hover:scale-110",
+                    "border-2 shadow-lg backdrop-blur-sm",
+                    isComplete && "bg-gradient-to-br from-green-500 to-emerald-600 border-green-400 shadow-green-500/30",
+                    isActive && "bg-gradient-to-br from-blue-500 to-indigo-600 border-blue-400 shadow-blue-500/30",
+                    !isActive && !isComplete && "border-gray-300 shadow-gray-500/20"
+                  )}
+                  style={{
+                    background: !isActive && !isComplete ? 'var(--glass-bg-secondary)' : undefined,
+                    borderColor: !isActive && !isComplete ? 'var(--glass-border)' : undefined,
+                  }}
+                >
+                  {/* Animated pulse ring for active step */}
+                  {isActive && (
+                    <div className="absolute inset-0 rounded-full border-2 border-blue-400 animate-ping opacity-75" />
+                  )}
+                  
+                  {/* Icon */}
+                  {isComplete ? (
+                    <Check className="h-5 w-5 text-white" />
+                  ) : (
+                    <PhaseIcon className={cn(
+                      "h-5 w-5 transition-colors duration-300",
+                      isActive ? "text-white" : "text-gray-400"
+                    )} />
+                  )}
+                  
+                  {/* Step number badge */}
+                  <div 
+                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center"
+                    style={{
+                      background: isComplete ? 'linear-gradient(135deg, #10b981, #059669)' : 
+                                 isActive ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 'var(--glass-bg-tertiary)',
+                      color: isActive || isComplete ? 'white' : 'var(--page-text-muted)',
+                      border: '1.5px solid var(--glass-border)',
+                      fontSize: '10px'
+                    }}
+                  >
+                    {index + 1}
+                  </div>
+                </div>
+
+                {/* Step Label */}
+                <div className="mt-3 text-center">
+                  <div 
+                    className={cn(
+                      "text-sm font-semibold transition-colors duration-300",
+                      isComplete && "text-green-600",
+                      isActive && "text-blue-600", 
+                      !isActive && !isComplete && "text-gray-500"
+                    )}
+                  >
+                    {group.shortTitle}
+                  </div>
+                  <div 
+                    className="text-xs mt-1 opacity-70"
+                    style={{ color: 'var(--page-text-muted)' }}
+                  >
+                    {group.description}
+                  </div>
+                </div>
+
+                {/* Connecting Line to Next Step */}
+                {index < phaseGroups.length - 1 && (
+                  <div className="absolute top-6 left-12 w-8 sm:w-16 lg:w-24">
+                    <ArrowRight className={cn(
+                      'h-4 w-4 transition-all duration-500 transform',
+                      isComplete ? 'text-green-500 scale-110' : 'text-gray-300 scale-100'
+                    )} />
+                  </div>
+                )}
               </div>
-              {/* Arrow */}
-              {index < phaseGroups.length - 1 && (
-                <ArrowRight className={cn(
-                  'h-4 w-4 flex-shrink-0 transition-colors duration-500',
-                  isComplete ? 'text-green-500' : 'text-border'
-                )} />
-              )}
-            </React.Fragment>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
 
       <div className="space-y-4">

@@ -27,7 +27,6 @@ import { Loader2, Upload, CheckCircle2, AlertCircle, ArrowLeft, Sparkles, Mail, 
 
 type Mode = 'file' | 'gmail'
 
-// Removed unused PhaseMeta type and getPhaseMeta function
 
 export default function CreateMark() {
   const navigate = useNavigate()
@@ -194,18 +193,6 @@ export default function CreateMark() {
   // Check for external wallet (MetaMask)
   const hasExternalWallet = typeof window !== 'undefined' && !!(window as any).ethereum && !(window as any).ethereum.isCoinbaseWallet
 
-  // Determine email source from email address
-  const getEmailSource = (email: GmailMessageDetail): 'luma' | 'substack' | 'other' => {
-    const from = email.from.toLowerCase()
-    if (from.includes('luma.co') || from.includes('lu.ma') || from.includes('luma-mail.com')) {
-      return 'luma'
-    }
-    if (from.includes('substack.com')) {
-      return 'substack'
-    }
-    return 'other'
-  }
-
   // Proof Progress Indicator removed in favor of UnifiedMintProgress
 
 
@@ -314,6 +301,18 @@ export default function CreateMark() {
       }
     }
   }, [hasMoreEmails, loadingMore, loadMoreEmails])
+
+  // Determine email source from email address
+  const getEmailSource = (email: GmailMessageDetail): 'luma' | 'substack' | 'other' => {
+    const from = email.from.toLowerCase()
+    if (from.includes('luma.co') || from.includes('lu.ma') || from.includes('luma-mail.com')) {
+      return 'luma'
+    }
+    if (from.includes('substack.com')) {
+      return 'substack'
+    }
+    return 'other'
+  }
 
   const handleEmailSelect = (email: GmailMessageDetail) => {
     setSelectedEmail(email)
@@ -1193,13 +1192,22 @@ export default function CreateMark() {
                         >
                           {/* Header - Sticky Top */}
                           {unifiedStep !== 'mint-complete' && (
-                            <div className="sticky top-0 px-6 pt-6 pb-4 bg-background/95 backdrop-blur-md border-b border-border/50" style={{ backgroundColor: 'var(--glass-bg-primary)', zIndex: 102 }}>
-                              <div className="flex items-start gap-2">
-                                {/* Header - Two Row Compact Design */}
-                                <div className="flex-1 px-2.5 py-2 rounded-xl border backdrop-blur-sm transition-all" style={{ 
-                                  borderColor: 'var(--glass-border)',
-                                  backgroundColor: 'var(--glass-bg-tertiary)',
-                                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                            <div 
+                              className="sticky top-0 px-6 pt-6 pb-4 backdrop-blur-md transition-all" 
+                              style={{ 
+                                backgroundColor: 'var(--glass-bg-primary)',
+                                backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
+                                WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
+                                zIndex: 102 
+                              }}
+                            >
+                              <div className="flex items-start gap-3">
+                                {/* Header - Clean Design */}
+                                <div className="flex-1 px-3 py-2.5 rounded-xl transition-all" style={{ 
+                                  backgroundColor: 'var(--glass-bg-secondary)',
+                                  backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
+                                  WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
+                                  boxShadow: 'var(--glass-shadow)'
                                 }}>
                                   {/* Row 1: Subject */}
                                   <div>
@@ -1210,20 +1218,22 @@ export default function CreateMark() {
                                   
                                   {/* Row 2: Meta Info & Badges */}
                                   <div className="flex items-center gap-2 mt-1.5">
-                                    <span className="text-[10px] text-muted-foreground truncate flex-shrink-0" style={{ color: 'var(--page-text-secondary)' }}>
+                                    <span className="text-[10px] truncate flex-shrink-0" style={{ color: 'var(--page-text-secondary)' }}>
                                       {selectedEmail?.from?.split('<')[0]?.trim() || 'Event'}
                                     </span>
-                                    <span className="text-[10px] text-border">•</span>
-                                    <span className="text-[10px] text-muted-foreground whitespace-nowrap flex-shrink-0" style={{ color: 'var(--page-text-secondary)' }}>
+                                    <span className="text-[10px]" style={{ color: 'var(--page-text-muted)' }}>•</span>
+                                    <span className="text-[10px] whitespace-nowrap flex-shrink-0" style={{ color: 'var(--page-text-secondary)' }}>
                                       {selectedEmail?.date ? new Date(selectedEmail.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Today'}
                                     </span>
                                     <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
-                                      <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-medium border border-primary/20 whitespace-nowrap">
+                                      <span className="text-[9px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap" style={{
+                                        backgroundColor: 'var(--figma-cta1-bg)',
+                                        color: 'var(--figma-cta1-text)'
+                                      }}>
                                         Celo
                                       </span>
-                                      <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md border text-[9px] font-medium whitespace-nowrap" style={{ 
-                                        borderColor: 'var(--glass-border)', 
-                                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                                      <span className="flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-medium whitespace-nowrap" style={{ 
+                                        backgroundColor: 'rgba(34, 197, 94, 0.15)',
                                         color: 'var(--page-text-primary)' 
                                       }}>
                                         <Shield className="w-2.5 h-2.5 text-green-500 flex-shrink-0" />
@@ -1233,71 +1243,77 @@ export default function CreateMark() {
                                   </div>
                                 </div>
                                 
-                                {/* Close Button - Right Side */}
+                                {/* Close Button - Enhanced Design */}
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   onClick={handleCloseUnifiedFlow}
-                                  className="h-6 w-6 rounded-md border transition-all hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive flex-shrink-0 mt-0.5"
+                                  className="h-9 w-9 rounded-xl transition-all duration-300 hover:scale-105 flex-shrink-0 group relative overflow-hidden"
                                   style={{
-                                    borderColor: 'var(--glass-border)',
-                                    color: 'var(--page-text-muted)',
-                                    backgroundColor: 'var(--glass-bg-secondary)'
+                                    background: 'linear-gradient(135deg, var(--glass-bg-secondary), var(--glass-bg-tertiary))',
+                                    border: '1px solid var(--glass-border)',
+                                    backdropFilter: 'blur(10px)',
+                                    WebkitBackdropFilter: 'blur(10px)',
                                   }}
                                 >
-                                  <X className="h-3.5 w-3.5" />
+                                  {/* Hover glow effect */}
+                                  <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-red-500/20 to-pink-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                  <X className="h-4 w-4 relative z-10 text-gray-400 group-hover:text-red-400 transition-colors duration-300" />
                                 </Button>
                               </div>
                             </div>
                           )}
                           
-                          <div className="relative overflow-y-auto flex-1 p-6">
+                          <div className="relative overflow-y-auto flex-1 p-4">
                             {unifiedStep === 'mint-complete' ? (
-                              /* Success State */
-                              <div className="text-center space-y-6 py-4">
-                                {/* Success Animation */}
+                              /* Success State - Compact */
+                              <div className="text-center space-y-4 py-2">
+                                {/* Success Animation - Smaller */}
                                 <div className="flex justify-center">
                                   <div className="relative">
-                                    <div className="absolute inset-0 bg-green-500/30 rounded-full blur-2xl animate-pulse"></div>
-                                    <CheckCircle2 className="h-16 w-16 text-green-500 relative z-10" />
+                                    <div className="absolute inset-0 bg-green-500/30 rounded-full blur-xl animate-pulse"></div>
+                                    <CheckCircle2 className="h-20 w-20 text-green-500 relative z-10" />
                                   </div>
                                 </div>
                                 
-                                <div className="space-y-2">
-                                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--page-text-primary)' }}>
+                                <div className="space-y-1">
+                                  <h2 className="text-xl font-bold tracking-tight" style={{ color: 'var(--page-text-primary)' }}>
                                     Mint Successful!
                                   </h2>
-                                  <p className="text-sm text-muted-foreground max-w-xs mx-auto" style={{ color: 'var(--page-text-secondary)' }}>
+                                  <p className="text-xs max-w-xs mx-auto" style={{ color: 'var(--page-text-secondary)' }}>
                                     Your commitment has been permanently recorded on Celo.
                                   </p>
                                 </div>
                                 
-                                {/* POAP Badge - Final */}
-                                <div className="flex justify-center pt-2">
-                                  <POAPBadge email={selectedEmail} size="md" showVerified={true} />
+                                {/* POAP Badge - Compact */}
+                                <div className="flex justify-center pt-1">
+                                  <POAPBadge email={selectedEmail} size="sm" showVerified={true} />
                                 </div>
                                 
-                                {/* Action */}
-                                <div className="pt-4 space-y-3">
-                                  <Button
-                                    onClick={() => navigate('/marks')}
-                                    variant="outline"
-                                    className="w-full h-11 gap-2"
-                                  >
-                                    View My Marks
-                                    <ArrowRight className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    onClick={handleShareOnX}
-                                    className="w-full h-11 gap-2"
-                                    style={{
-                                      backgroundColor: 'var(--figma-cta1-bg)',
-                                      borderColor: 'var(--figma-cta1-border)',
-                                      color: 'var(--figma-cta1-text)'
-                                    }}
-                                  >
-                                    Share on X
-                                  </Button>
+                                {/* Action Buttons - Side by Side */}
+                                <div className="pt-3">
+                                  <div className="flex gap-3">
+                                    <Button
+                                      onClick={() => navigate('/marks')}
+                                      variant="outline"
+                                      className="flex-1 h-11 gap-2"
+                                    >
+                                      <Bookmark className="h-5 w-5" />
+                                      View My Marks
+                                    </Button>
+                                    <Button
+                                      onClick={handleShareOnX}
+                                      className="flex-1 h-11 gap-2"
+                                      style={{
+                                        backgroundColor: 'var(--figma-cta1-bg)',
+                                        borderColor: 'var(--figma-cta1-border)',
+                                        color: 'var(--figma-cta1-text)'
+                                      }}
+                                    >
+                                      <ArrowRight className="h-5 w-5" />
+                                      Share on X
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
                             ) : (
