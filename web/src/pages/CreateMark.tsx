@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { useWalletStatus } from '@/hooks/useWalletStatus'
-import { connectWallet } from '@/services/wallet'
+import { useSignInWithEmail, useVerifyEmailOTP, useCurrentUser, useEvmAddress, useSendEvmTransaction } from '@coinbase/cdp-hooks'
 import { searchLumaEmails, getEmailRaw, type EmailSearchResult } from '@/services/gmail'
 import type { GmailMessageDetail } from '@/types/gmail'
 import { validateProof } from '@/services/proofValidation'
@@ -19,19 +19,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Upload, CheckCircle2, AlertCircle, ArrowLeft, Sparkles, Mail, Bookmark, ArrowRight, Shield, Lock, ChevronDown, Info } from 'lucide-react'
+// USDC transfer için ERC20 transfer fonksiyonunu encode ediyoruz
+// Function selector: transfer(address,uint256) = 0xa9059cbb
 
 type Mode = 'file' | 'gmail'
 
 export default function CreateMark() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { accessToken, isAuthenticated, handleTokenExpiration } = useAuth()
+  const { accessToken, isAuthenticated, handleTokenExpiration, userEmail } = useAuth()
   const { showToast } = useToast()
   
   // CDP Wallet hooks
   const walletStatus = useWalletStatus()
+  const { signInWithEmail } = useSignInWithEmail()
+  const { verifyEmailOTP } = useVerifyEmailOTP()
+  const { currentUser } = useCurrentUser()
+  const { evmAddress } = useEvmAddress()
+  const { sendEvmTransaction, data: txData } = useSendEvmTransaction()
   
-  // Email OTP state removed in favor of direct wallet connection for this flow
+  // CDP Email OTP state for wallet connection
+  const [otpEmail, setOtpEmail] = useState<string>('')
+  const [otpCode, setOtpCode] = useState<string>('')
+  const [flowId, setFlowId] = useState<string | null>(null)
+  const [showOtpInput, setShowOtpInput] = useState(false)
+  const [isSendingOtp, setIsSendingOtp] = useState(false)
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
+  
   const [mode, setMode] = useState<Mode>('gmail')
   const [emailFile, setEmailFile] = useState<File | null>(null)
   const [proof, setProof] = useState<any>(null)
@@ -516,18 +530,12 @@ export default function CreateMark() {
       }
 
       // Phase 2: Wallet Connection
-      // Check if wallet already connected
-      // Note: walletStatus from CDP hook might be different from window.ethereum
-      // We prioritize window.ethereum for this flow as per requirement
-      try {
-        const existingConnection = await connectWallet()
-        if (existingConnection.address) {
-          setWalletAddress(existingConnection.address)
-          setUnifiedStep('wallet-sign-prompt')
-          return
-        }
-      } catch (e) {
-        // Not connected, prompt user
+      // Check if CDP wallet already connected
+      if (evmAddress && currentUser) {
+        setWalletAddress(evmAddress)
+        setUnifiedStep('wallet-sign-prompt')
+      } else {
+        // Not connected, prompt user to connect with CDP
         setUnifiedStep('wallet-prompt')
       }
       
@@ -547,23 +555,78 @@ export default function CreateMark() {
     }
   }
 
-  // Handle wallet connection
+  // Handle wallet connection using CDP Embedded Wallet (EOA)
   const handleConnectWallet = async () => {
     try {
-      setUnifiedStep('wallet-connecting')
       setError(null)
       
-      const result = await connectWallet()
-      setWalletAddress(result.address)
+      // Use Google login email if available, otherwise use user input
+      const emailToUse = userEmail || otpEmail
       
-      setUnifiedStep('wallet-connected')
-      await new Promise(resolve => setTimeout(resolve, 500))
+      if (!emailToUse) {
+        // If no email available, show email input
+        setShowOtpInput(true)
+        setUnifiedStep('wallet-prompt')
+        return
+      }
       
-      // Auto advance to sign prompt
-      setUnifiedStep('wallet-sign-prompt')
+      // If OTP input is showing and we have OTP code, verify OTP
+      if (showOtpInput && otpCode && flowId) {
+        setIsVerifyingOtp(true)
+        setUnifiedStep('wallet-connecting')
+        
+        try {
+          const { user } = await verifyEmailOTP({ flowId, otp: otpCode })
+          
+          // Get wallet address from user (EOA account)
+          if (user.evmAccounts && user.evmAccounts.length > 0) {
+            const address = user.evmAccounts[0]
+            setWalletAddress(address)
+            setUnifiedStep('wallet-connected')
+            setShowOtpInput(false)
+            setOtpCode('')
+            setFlowId(null)
+            await new Promise(resolve => setTimeout(resolve, 500))
+            setUnifiedStep('wallet-sign-prompt')
+          } else {
+            throw new Error('Wallet creation failed. No EOA address returned.')
+          }
+        } catch (err: unknown) {
+          console.error('Failed to verify OTP:', err)
+          const error = err as Error
+          setError(error.message || 'Failed to verify OTP')
+          setOtpCode('')
+          setUnifiedStep('wallet-prompt')
+        } finally {
+          setIsVerifyingOtp(false)
+        }
+      } else {
+        // Start email sign-in flow
+        setIsSendingOtp(true)
+        setUnifiedStep('wallet-connecting')
+        
+        try {
+          const result = await signInWithEmail({ email: emailToUse })
+          
+          // Store flowId and show OTP input
+          setFlowId(result.flowId)
+          setOtpEmail(emailToUse)
+          setShowOtpInput(true)
+          setUnifiedStep('wallet-prompt')
+          
+        } catch (err: unknown) {
+          console.error('Failed to send OTP:', err)
+          const error = err as Error
+          setError(error.message || 'Failed to send OTP')
+          setUnifiedStep('wallet-prompt')
+        } finally {
+          setIsSendingOtp(false)
+        }
+      }
+      
     } catch (err: unknown) {
+      console.error('Failed to connect wallet:', err)
       const error = err as Error
-      console.error('Failed to connect wallet:', error)
       setError(error.message || 'Failed to connect wallet')
       setUnifiedStep('wallet-prompt')
     }
@@ -611,13 +674,58 @@ export default function CreateMark() {
     }
   }
 
-  // Handle pay minting fee
+  // Handle pay minting fee - Send 1 USDC on Base Sepolia testnet
   const handlePayFee = async () => {
+    if (!evmAddress || !walletAddress) {
+      setError('Wallet not connected')
+      setUnifiedStep('wallet-prompt')
+      return
+    }
+
     try {
       setUnifiedStep('wallet-fee-paying')
+      setError(null)
       
-      // Simulate payment delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Base Sepolia USDC contract address (testnet)
+      // Note: Verify the actual USDC contract address on Base Sepolia
+      const USDC_CONTRACT_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
+      const MINTING_FEE_RECIPIENT = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb' // Replace with actual recipient
+      
+      // USDC uses 6 decimal places, so 1 USDC = 1000000 (1e6)
+      const amount = BigInt(1_000_000) // 1 USDC
+      
+      // ERC20 transfer function: transfer(address to, uint256 amount)
+      // Function selector: 0xa9059cbb (first 4 bytes of keccak256("transfer(address,uint256)"))
+      // Format: 0xa9059cbb + to (32 bytes padded) + amount (32 bytes padded)
+      const functionSelector = '0xa9059cbb'
+      
+      // Pad address to 32 bytes (remove 0x prefix, pad left with zeros)
+      const toAddress = MINTING_FEE_RECIPIENT.slice(2).padStart(64, '0')
+      
+      // Pad amount to 32 bytes (hex, pad left with zeros)
+      const amountHex = amount.toString(16).padStart(64, '0')
+      
+      // Combine: selector + to + amount
+      const transferData = functionSelector + toAddress + amountHex
+      
+      // Send transaction using CDP hooks
+      const result = await sendEvmTransaction({
+        evmAccount: evmAddress,
+        network: 'base-sepolia',
+        transaction: {
+          to: USDC_CONTRACT_ADDRESS as `0x${string}`,
+          value: 0n,
+          data: transferData as `0x${string}`,
+          chainId: 84532, // Base Sepolia chain ID
+          type: 'eip1559'
+        }
+      })
+      
+      console.log('USDC transfer transaction hash:', result.transactionHash)
+      
+      // Wait for transaction confirmation
+      // Note: CDP hooks automatically track transaction status via txData
+      // We'll check txData.status in useEffect
       
       setUnifiedStep('wallet-complete')
       await new Promise(resolve => setTimeout(resolve, 500))
@@ -632,6 +740,17 @@ export default function CreateMark() {
       setUnifiedStep('wallet-fee-prompt')
     }
   }
+  
+  // Monitor transaction status
+  useEffect(() => {
+    if (txData?.status === 'success' && unifiedStep === 'wallet-fee-paying') {
+      console.log('USDC transfer confirmed:', txData.receipt)
+      showToast('Minting fee paid successfully!', 'success')
+    } else if (txData?.status === 'error' && unifiedStep === 'wallet-fee-paying') {
+      setError(txData.error?.message || 'Transaction failed')
+      setUnifiedStep('wallet-fee-prompt')
+    }
+  }, [txData, unifiedStep, showToast])
 
   // Start minting process
   const startMinting = async () => {
@@ -1157,10 +1276,21 @@ export default function CreateMark() {
                                   onChangeWallet={() => {
                                     // Reset wallet state to allow user to connect different wallet
                                     setWalletAddress(null)
+                                    setShowOtpInput(false)
+                                    setOtpEmail('')
+                                    setOtpCode('')
+                                    setFlowId(null)
                                     setUnifiedStep('wallet-prompt')
                                   }}
                                   walletAddress={walletAddress || undefined}
                                   error={error}
+                                  showOtpInput={showOtpInput}
+                                  otpEmail={otpEmail || userEmail || ''}
+                                  otpCode={otpCode}
+                                  onOtpEmailChange={(email) => setOtpEmail(email)}
+                                  onOtpCodeChange={(code) => setOtpCode(code)}
+                                  isSendingOtp={isSendingOtp}
+                                  isVerifyingOtp={isVerifyingOtp}
                                 />
 
                                 {/* Security footer */}
