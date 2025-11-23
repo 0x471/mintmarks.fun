@@ -11,7 +11,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import React from 'react'
-import { Loader2, CheckCircle2, Circle, Wallet, FileCheck, Coins, Zap, Shield, ChevronDown, Info, ArrowRight, Mail, Terminal, Share2, X, Fingerprint } from 'lucide-react'
+import { Loader2, CheckCircle2, Circle, Wallet, FileCheck, Coins, Zap, Shield, ChevronDown, ChevronUp, Info, ArrowRight, Mail, Terminal, Share2, X, Fingerprint } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card'
@@ -203,8 +203,10 @@ export function UnifiedMintProgress({
   const currentStepDetails = stepConfigs.find(s => s.key === currentStep)
   const currentPhaseGroup = phaseGroups.find(g => g.phase === currentPhase)
 
+  const [isStepsExpanded, setIsStepsExpanded] = useState(false)
+
   return (
-    <div className={cn('space-y-6 relative', className)}>
+    <div className={cn('space-y-4 relative', className)}>
       {/* Close Button - Better Position */}
       <div className="absolute -top-4 -right-2 z-50">
         <Button
@@ -249,35 +251,83 @@ export function UnifiedMintProgress({
         })}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+      <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
         {/* Main Column: Action Card */}
-        <div className="space-y-6">
+        <div className="space-y-4">
            {/* Current Step Card - Main Focus */}
           {currentStepDetails && currentPhaseGroup && (
             <Card className="overflow-hidden rounded-2xl border border-border/40 backdrop-blur-xl bg-background/40 shadow-2xl shadow-black/5 transition-all duration-500">
-              <CardHeader className="pb-4 pt-5 px-5 sm:px-6">
-                <div className="flex items-center gap-4">
+              {/* Log Terminal - Integrated at top if active or recently active */}
+              {(proofStatus !== 'idle' || proofLogs.length > 0) && (
+                <div className="border-b border-border/40 bg-black/90 text-green-500 font-mono text-xs">
+                   <div className="flex items-center justify-between bg-white/5 px-3 py-1.5 border-b border-white/10">
+                      <div className="flex items-center gap-2">
+                          <Terminal className="h-3 w-3" />
+                          <span className="opacity-70 font-semibold text-[10px]">ZK Proof Logs</span>
+                      </div>
+                      <div className="flex gap-1.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-red-500/50"></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-yellow-500/50"></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-green-500/50"></div>
+                      </div>
+                   </div>
+                   <div 
+                      ref={scrollRef}
+                      className="max-h-[100px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent p-2 font-mono text-[10px] leading-relaxed"
+                    >
+                      {proofLogs.length === 0 && proofStatus === 'generating' ? (
+                         <div className="flex items-center gap-2 opacity-60">
+                           <Loader2 className="h-3 w-3 animate-spin" />
+                           <span>Initializing proof generation...</span>
+                         </div>
+                      ) : (
+                        proofLogs.map((log, i) => (
+                          <div key={i} className="break-all flex gap-2">
+                            <span className="opacity-40 select-none min-w-[24px]">
+                                {new Date().toLocaleTimeString([], {hour12: false, minute:'2-digit', second:'2-digit'})}
+                            </span>
+                            <span className={cn(
+                                log.includes('ERROR') ? 'text-red-400' : 
+                                log.includes('Successfully') ? 'text-green-400 font-bold' : 
+                                'text-gray-300'
+                            )}>{log}</span>
+                          </div>
+                        ))
+                      )}
+                      {proofStatus === 'generating' && (
+                         <div className="animate-pulse text-green-500/50 mt-1">_ Processing...</div>
+                      )}
+                      {proofStatus === 'completed' && (
+                         <div className="text-green-400 font-bold mt-1">
+                            ✨ Proof Generation Complete
+                         </div>
+                      )}
+                   </div>
+                </div>
+              )}
+
+              <CardHeader className="pb-2 pt-4 px-4 sm:px-5">
+                <div className="flex items-center gap-3">
                   <div className={cn(
-                    'flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-500',
+                    'flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-500',
                     getStepStatus(currentStepDetails) === 'complete' 
-                      ? 'bg-green-500/10 text-green-500 shadow-[0_0_12px_rgba(34,197,94,0.2)]' 
-                      : 'bg-blue-500/10 text-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.2)]'
+                      ? 'bg-green-500/10 text-green-500' 
+                      : 'bg-blue-500/10 text-blue-500'
                   )}>
                     {getStepStatus(currentStepDetails) === 'complete' ? (
-                      <CheckCircle2 className="h-5 w-5" />
+                      <CheckCircle2 className="h-4 w-4" />
                     ) : currentStepDetails.key.includes('connecting') || currentStepDetails.key.includes('requesting') || currentStepDetails.key.includes('signing') || currentStepDetails.key.includes('paying') || currentStepDetails.key.includes('generating') || currentStepDetails.key.includes('submitting') || currentStepDetails.key.includes('confirming') ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <Circle className="h-5 w-5 fill-current" />
+                      <Circle className="h-4 w-4 fill-current" />
                     )}
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <CardTitle className="text-base sm:text-lg font-semibold tracking-tight">
+                  <div className="flex-1 space-y-0.5">
+                    <CardTitle className="text-sm sm:text-base font-semibold tracking-tight">
                       {currentStepDetails.label}
                     </CardTitle>
                     {currentStepDetails.description && (
-                      <CardDescription className="flex items-start gap-1.5 text-sm">
-                        <Info className="h-4 w-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
+                      <CardDescription className="flex items-start gap-1 text-xs">
                         <span className="text-muted-foreground/80">{currentStepDetails.description}</span>
                       </CardDescription>
                     )}
@@ -285,28 +335,23 @@ export function UnifiedMintProgress({
                 </div>
               </CardHeader>
               
-              <CardContent className="space-y-6 px-5 sm:px-6 pb-6">
+              <CardContent className="space-y-4 px-4 sm:px-5 pb-5">
                 {/* Action Buttons */}
                 {currentStepDetails.requiresAction && (
-                  <div className="space-y-4 pt-2">
+                  <div className="space-y-3 pt-1">
                     {currentStepDetails.key === 'wallet-prompt' && (
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-border/30">
-                          <Info className="h-4 w-4 text-blue-500" />
-                          <span>Connect a wallet to mint your mark on Base.</span>
-                        </div>
-                        
+                      <div className="space-y-3">
                         {/* Wallet Selection: CDP or External */}
                         {!showOtpInput && (
-                          <div className="grid grid-cols-1 gap-3">
+                          <div className="grid grid-cols-1 gap-2">
                             {/* CDP Embedded Wallet Option */}
                             {onConnectCDPWallet && (
                               <Button
                                 onClick={onConnectCDPWallet}
-                                size="lg"
-                                className="gap-3 w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20 transition-all duration-300 hover:scale-[1.01]"
+                                size="default"
+                                className="gap-2 w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md"
                               >
-                                <Mail className="h-5 w-5" />
+                                <Mail className="h-4 w-4" />
                                 <span className="font-medium">Connect with Email</span>
                               </Button>
                             )}
@@ -315,11 +360,11 @@ export function UnifiedMintProgress({
                             {hasExternalWallet && onConnectExternalWallet && (
                               <Button
                                 onClick={onConnectExternalWallet}
-                                size="lg"
+                                size="default"
                                 variant="outline"
-                                className="gap-3 w-full h-12 rounded-xl border-border/60 hover:bg-muted/50 hover:border-border transition-all duration-300"
+                                className="gap-2 w-full rounded-xl border-border/60 hover:bg-muted/50"
                               >
-                                <Wallet className="h-5 w-5 text-orange-500" />
+                                <Wallet className="h-4 w-4 text-orange-500" />
                                 <span className="font-medium">Connect with MetaMask</span>
                               </Button>
                             )}
@@ -328,9 +373,9 @@ export function UnifiedMintProgress({
                         
                         {/* OTP Input Section */}
                         {showOtpInput && (
-                          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            <div className="space-y-3">
-                              <label className="text-sm font-medium text-foreground/80 ml-1">
+                          <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-foreground/80 ml-1">
                                 Enter OTP Code
                               </label>
                               <div className="relative">
@@ -341,26 +386,26 @@ export function UnifiedMintProgress({
                                   placeholder="123456"
                                   disabled={isVerifyingOtp}
                                   maxLength={6}
-                                  className="w-full h-14 px-4 rounded-xl border bg-background/50 border-border/50 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-center text-2xl font-mono tracking-[0.5em] placeholder:tracking-normal"
+                                  className="w-full h-12 px-4 rounded-xl border bg-background/50 border-border/50 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-center text-xl font-mono tracking-[0.5em] placeholder:tracking-normal"
                                 />
                               </div>
                               {otpEmail && (
-                                <p className="text-xs text-center text-muted-foreground">
-                                  We sent a code to <span className="font-medium text-foreground">{otpEmail}</span>
+                                <p className="text-[10px] text-center text-muted-foreground">
+                                  Code sent to <span className="font-medium text-foreground">{otpEmail}</span>
                                 </p>
                               )}
                             </div>
                             {onConnectCDPWallet && (
                               <Button
                                 onClick={onConnectCDPWallet}
-                                size="lg"
+                                size="default"
                                 disabled={isSendingOtp || isVerifyingOtp || !otpCode || otpCode.length < 6}
-                                className="gap-2 w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20"
+                                className="gap-2 w-full rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md"
                               >
                                 {isSendingOtp ? (
                                   <>
                                     <Loader2 className="h-4 w-4 animate-spin" />
-                                    Sending OTP...
+                                    Sending...
                                   </>
                                 ) : isVerifyingOtp ? (
                                   <>
@@ -381,28 +426,28 @@ export function UnifiedMintProgress({
                     )}
 
                     {currentStepDetails.key === 'self-id-prompt' && onVerifySelfID && (
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-border/30">
-                           <Fingerprint className="h-4 w-4 text-purple-500" />
-                           <span>Verify your identity using Self ID App to proceed.</span>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 p-2.5 rounded-lg border border-border/30">
+                           <Fingerprint className="h-3.5 w-3.5 text-purple-500" />
+                           <span>Verify your identity using Self ID App.</span>
                         </div>
                         <Button
                           onClick={onVerifySelfID}
-                          size="lg"
-                          className="gap-3 w-full h-12 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/20 transition-all duration-300 hover:scale-[1.01]"
+                          size="default"
+                          className="gap-2 w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-md"
                         >
-                          <Fingerprint className="h-5 w-5" />
+                          <Fingerprint className="h-4 w-4" />
                           <span className="font-medium">Verify with Self ID</span>
                         </Button>
                       </div>
                     )}
                     
                     {currentStepDetails.key === 'wallet-sign-prompt' && onSignMessage && walletAddress && (
-                      <div className="space-y-4">
-                        <div className="p-4 rounded-xl border border-border/40 bg-muted/20 flex items-center justify-between">
+                      <div className="space-y-3">
+                        <div className="p-3 rounded-xl border border-border/40 bg-muted/20 flex items-center justify-between">
                           <div>
-                            <p className="text-xs text-muted-foreground mb-1">Connected Wallet</p>
-                            <p className="font-mono font-semibold text-sm text-foreground/90">
+                            <p className="text-[10px] text-muted-foreground mb-0.5">Connected Wallet</p>
+                            <p className="font-mono font-semibold text-xs text-foreground/90">
                               {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
                             </p>
                           </div>
@@ -411,7 +456,7 @@ export function UnifiedMintProgress({
                               variant="ghost"
                               size="sm"
                               onClick={onChangeWallet}
-                              className="h-8 px-3 text-xs hover:bg-background hover:shadow-sm rounded-lg"
+                              className="h-7 px-2 text-[10px] hover:bg-background hover:shadow-sm rounded-lg"
                             >
                               Change
                             </Button>
@@ -420,47 +465,37 @@ export function UnifiedMintProgress({
                         
                         <Button
                           onClick={onSignMessage}
-                          size="lg"
-                          className="gap-2 w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20 transition-all duration-300 hover:scale-[1.01]"
+                          size="default"
+                          className="gap-2 w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-md"
                         >
-                          <FileCheck className="h-5 w-5" />
+                          <FileCheck className="h-4 w-4" />
                           <span className="font-medium">Sign Message</span>
                         </Button>
-                        
-                        <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1.5">
-                          <Shield className="h-3 w-3" />
-                          Secure signature request
-                        </p>
                       </div>
                     )}
                     
                     {currentStepDetails.key === 'wallet-fee-prompt' && onPayFee && (
-                      <div className="space-y-4">
-                        <div className="p-5 rounded-xl border border-border/40 bg-gradient-to-br from-blue-500/5 to-purple-500/5 flex items-center justify-between relative overflow-hidden">
+                      <div className="space-y-3">
+                        <div className="p-4 rounded-xl border border-border/40 bg-gradient-to-br from-blue-500/5 to-purple-500/5 flex items-center justify-between relative overflow-hidden">
                           <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))]" />
                           <div className="relative">
-                            <p className="text-sm text-muted-foreground font-medium mb-1">Minting Fee</p>
-                            <p className="text-xs text-muted-foreground/80">Base Network Gas + Service</p>
+                            <p className="text-xs text-muted-foreground font-medium mb-0.5">Minting Fee</p>
+                            <p className="text-[10px] text-muted-foreground/80">Base Network Gas + Service</p>
                           </div>
-                          <div className="flex items-center gap-2 relative bg-background/60 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border/20 shadow-sm">
-                            <USDCLogo className="h-6 w-6" />
-                            <span className="text-lg font-bold text-foreground">1.00 USDC</span>
+                          <div className="flex items-center gap-1.5 relative bg-background/60 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-border/20 shadow-sm">
+                            <USDCLogo className="h-5 w-5" />
+                            <span className="text-sm font-bold text-foreground">1.00 USDC</span>
                           </div>
                         </div>
                         
                         <Button
                           onClick={onPayFee}
-                          size="lg"
-                          className="gap-2 w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:scale-[1.01]"
+                          size="default"
+                          className="gap-2 w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-md"
                         >
-                          <Coins className="h-5 w-5" />
+                          <Coins className="h-4 w-4" />
                           <span className="font-medium">Pay & Mint</span>
                         </Button>
-                        
-                        <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1.5">
-                          <Zap className="h-3 w-3 text-amber-500" />
-                          Lightning fast transaction on Base
-                        </p>
                       </div>
                     )}
                   </div>
@@ -468,42 +503,97 @@ export function UnifiedMintProgress({
 
                 {/* Loading State */}
                 {!currentStepDetails.requiresAction && (
-                  <div className="flex flex-col items-center justify-center gap-3 py-4 text-center">
+                  <div className="flex flex-col items-center justify-center gap-2 py-2 text-center">
                     <div className="relative">
                       <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full animate-pulse" />
-                      <Loader2 className="h-8 w-8 text-primary animate-spin relative z-10" />
+                      <Loader2 className="h-6 w-6 text-primary animate-spin relative z-10" />
                     </div>
-                    <span className="text-sm font-medium text-muted-foreground animate-pulse">
+                    <span className="text-xs font-medium text-muted-foreground animate-pulse">
                       {currentStepDetails.phase === 'wallet' && 'Connecting to wallet...'}
                       {currentStepDetails.phase === 'self-id' && 'Waiting for Self ID approval...'}
                       {currentStepDetails.phase === 'mint' && 'Processing transaction...'}
-                      {currentStepDetails.phase === 'share' && 'Finalizing...'}
                     </span>
                   </div>
                 )}
 
-                {/* Progress Bar */}
+                {/* Epoch Progress */}
                 <div className="space-y-2 pt-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-muted-foreground">Overall Progress</span>
-                    <span className="font-bold text-primary">{currentProgress}%</span>
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span>Overall Progress</span>
+                    <span>{currentProgress}%</span>
                   </div>
-                  <div className="w-full bg-muted/50 rounded-full h-2 overflow-hidden p-[1px]">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-700 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
-                      style={{ width: `${currentProgress}%` }}
-                    />
+                  <div className="relative flex items-center justify-between w-full">
+                     {/* Connecting Line */}
+                     <div className="absolute left-0 top-1/2 w-full h-0.5 bg-muted -z-10" />
+                     <div 
+                        className="absolute left-0 top-1/2 h-0.5 bg-primary transition-all duration-500 -z-10" 
+                        style={{ width: `${currentProgress}%` }}
+                     />
+                     
+                     {/* Epoch Dots */}
+                     {[0, 33, 66, 100].map((pos, i) => (
+                        <div 
+                          key={i}
+                          className={cn(
+                            "w-2.5 h-2.5 rounded-full border-2 transition-all duration-300 z-0",
+                            currentProgress >= pos 
+                              ? "bg-primary border-primary" 
+                              : "bg-background border-muted"
+                          )}
+                        />
+                     ))}
                   </div>
+                  
+                  {/* Expandable Steps */}
+                  <button
+                    onClick={() => setIsStepsExpanded(!isStepsExpanded)}
+                    className="w-full flex items-center justify-between text-[10px] text-muted-foreground hover:text-foreground transition-colors pt-1"
+                  >
+                    <span>View detailed steps</span>
+                    {isStepsExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  </button>
+                  
+                  {isStepsExpanded && (
+                    <div className="space-y-1.5 pt-2 border-t border-border/20 animate-in slide-in-from-top-2">
+                      {stepConfigs.map((step) => {
+                        const status = getStepStatus(step)
+                        return (
+                          <div key={step.key} className={cn(
+                              "flex items-center gap-2 p-1.5 rounded transition-all duration-300",
+                              step.key === currentStep ? "bg-primary/5 border border-primary/10" : "hover:bg-muted/20"
+                          )}>
+                            <div className="flex-shrink-0 relative">
+                                {status === 'complete' ? (
+                                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                ) : step.key === currentStep ? (
+                                  <Loader2 className="h-3 w-3 text-primary animate-spin" />
+                                ) : (
+                                  <Circle className="h-3 w-3 text-muted-foreground/30" />
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className={cn(
+                                  "text-[10px] font-medium truncate",
+                                  status === 'complete' ? "text-muted-foreground/70" :
+                                  step.key === currentStep ? "text-foreground" :
+                                  "text-muted-foreground/50"
+                                )}>
+                                  {step.label}
+                                </p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* Error Display */}
                 {error && (
-                  <div className="p-4 rounded-xl border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-900/50 animate-in fade-in shake">
-                    <div className="flex items-start gap-3">
-                      <div className="bg-red-100 dark:bg-red-900/40 p-1.5 rounded-full shrink-0">
-                        <Info className="h-4 w-4 text-red-600 dark:text-red-400" />
-                      </div>
-                      <p className="text-sm text-red-600 dark:text-red-400 font-medium pt-0.5">
+                  <div className="p-3 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-900/50 animate-in fade-in shake">
+                    <div className="flex items-center gap-2">
+                      <Info className="h-3.5 w-3.5 text-red-600 dark:text-red-400 shrink-0" />
+                      <p className="text-xs text-red-600 dark:text-red-400 font-medium">
                         {error}
                       </p>
                     </div>
@@ -514,96 +604,40 @@ export function UnifiedMintProgress({
           )}
         </div>
 
-        {/* Right Column: Terminal / Info - Enhanced Design */}
+        {/* Right Column: Detailed Steps - Vertical List */}
         <div className="space-y-4">
-          {/* ZK Proof Terminal */}
-          <div className="rounded-xl border border-border/40 bg-black/90 text-green-500 font-mono text-xs p-0 shadow-inner overflow-hidden flex flex-col h-[200px]">
-             <div className="flex items-center justify-between bg-white/5 px-3 py-2 border-b border-white/10">
-                <div className="flex items-center gap-2">
-                    <Terminal className="h-3 w-3" />
-                    <span className="opacity-70 font-semibold">ZK Proof Logs</span>
-                </div>
-                <div className="flex gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-red-500/50"></div>
-                    <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>
-                    <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
-                </div>
-             </div>
-             <div 
-                ref={scrollRef}
-                className="flex-1 overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent p-3 font-mono text-[10px] sm:text-xs leading-relaxed"
-              >
-                {proofLogs.length === 0 && proofStatus === 'idle' ? (
-                  <div className="flex items-center gap-2 opacity-40 animate-pulse">
-                     <span>_</span>
-                     <span>Waiting to start...</span>
-                  </div>
-                ) : proofLogs.length === 0 && proofStatus === 'generating' ? (
-                   <div className="flex items-center gap-2 opacity-60">
-                     <Loader2 className="h-3 w-3 animate-spin" />
-                     <span>Initializing proof generation...</span>
-                   </div>
-                ) : (
-                  proofLogs.map((log, i) => (
-                    <div key={i} className="break-all flex gap-2">
-                      <span className="opacity-40 select-none min-w-[30px]">
-                          {new Date().toLocaleTimeString([], {hour12: false, minute:'2-digit', second:'2-digit'})}
-                      </span>
-                      <span className={cn(
-                          log.includes('ERROR') ? 'text-red-400' : 
-                          log.includes('Successfully') ? 'text-green-400 font-bold' : 
-                          'text-gray-300'
-                      )}>{log}</span>
-                    </div>
-                  ))
-                )}
-                {proofStatus === 'generating' && (
-                   <div className="animate-pulse text-green-500/50 mt-1">_ Processing...</div>
-                )}
-                {proofStatus === 'completed' && (
-                   <div className="text-green-400 font-bold mt-2 border-t border-white/10 pt-2">
-                      ✨ Proof Generation Complete
-                   </div>
-                )}
-             </div>
-          </div>
-
-          {/* Steps List - Collapsible */}
-          <div className="rounded-xl border border-border/40 bg-background/40 backdrop-blur p-0 overflow-hidden">
-              <div className="px-4 py-3 border-b border-border/20 bg-muted/10">
-                  <h4 className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Detailed Steps</h4>
+          <div className="rounded-xl border border-border/40 bg-background/40 backdrop-blur overflow-hidden">
+              <div className="px-3 py-2.5 border-b border-border/20 bg-muted/10">
+                  <h4 className="text-[10px] font-bold text-foreground/80 uppercase tracking-wider">Detailed Steps</h4>
               </div>
-              <div className="p-2 max-h-[250px] overflow-y-auto scrollbar-thin scrollbar-thumb-border/50">
-                {stepConfigs.map((step, index) => {
+              <div className="p-2 max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-border/50">
+                {stepConfigs.map((step) => {
                   const status = getStepStatus(step)
-                  // Only show current, next, and completed steps
-                  if (status === 'pending' && step.key !== currentStep) return null
-                  
                   return (
                     <div key={step.key} className={cn(
-                        "flex items-center gap-3 p-2 rounded-lg transition-all duration-300",
+                        "flex items-start gap-2.5 p-2 rounded-lg transition-all duration-300",
                         step.key === currentStep ? "bg-primary/5 border border-primary/10 shadow-sm" : "hover:bg-muted/20"
                     )}>
-                       <div className="flex-shrink-0 relative">
+                       <div className="flex-shrink-0 relative mt-0.5">
                           {status === 'complete' ? (
-                             <CheckCircle2 className="h-4 w-4 text-green-500" />
+                             <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                           ) : step.key === currentStep ? (
-                             <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                             <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
                           ) : (
-                             <Circle className="h-4 w-4 text-muted-foreground/30" />
+                             <Circle className="h-3.5 w-3.5 text-muted-foreground/30" />
                           )}
                        </div>
                        <div className="flex-1 min-w-0">
                            <p className={cn(
-                             "text-xs font-medium truncate",
+                             "text-[10px] font-medium",
                              status === 'complete' ? "text-muted-foreground/70" :
-                             step.key === currentStep ? "text-foreground" :
+                             step.key === currentStep ? "text-foreground font-semibold" :
                              "text-muted-foreground/50"
                            )}>
                              {step.label}
                            </p>
                            {step.key === currentStep && step.description && (
-                               <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                               <p className="text-[9px] text-muted-foreground mt-0.5">
                                    {step.description}
                                </p>
                            )}
