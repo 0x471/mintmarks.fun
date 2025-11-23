@@ -247,13 +247,65 @@ export function UnifiedMintProgress({
         })}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
-        {/* Main Column: Action Card */}
-        <div className="space-y-4">
-           {/* Current Step Card - Main Focus */}
-          {currentStepDetails && currentPhaseGroup && (
-            <Card className="overflow-hidden rounded-2xl border border-border/40 backdrop-blur-xl bg-background/40 shadow-2xl shadow-black/5 transition-all duration-500">
-              <CardHeader className="pb-2 pt-4 px-4 sm:px-5">
+      <div className="space-y-4">
+        {/* ZK Proof Terminal - At Top */}
+        {(proofStatus !== 'idle' || proofLogs.length > 0) && (
+          <div className="rounded-xl border border-border/40 bg-black/90 text-green-500 font-mono text-xs p-0 shadow-inner overflow-hidden flex flex-col h-[200px]">
+             <div className="flex items-center justify-between bg-white/5 px-3 py-2 border-b border-white/10">
+                <div className="flex items-center gap-2">
+                    <Terminal className="h-3 w-3" />
+                    <span className="opacity-70 font-semibold text-[10px]">ZK Proof Logs</span>
+                </div>
+                <div className="flex gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-red-500/50"></div>
+                    <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>
+                    <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
+                </div>
+             </div>
+             <div 
+                ref={scrollRef}
+                className="flex-1 overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent p-3 font-mono text-[10px] sm:text-xs leading-relaxed"
+              >
+                {proofLogs.length === 0 && proofStatus === 'idle' ? (
+                  <div className="flex items-center gap-2 opacity-40 animate-pulse">
+                     <span>_</span>
+                     <span>Waiting to start...</span>
+                  </div>
+                ) : proofLogs.length === 0 && proofStatus === 'generating' ? (
+                   <div className="flex items-center gap-2 opacity-60">
+                     <Loader2 className="h-3 w-3 animate-spin" />
+                     <span>Initializing proof generation...</span>
+                   </div>
+                ) : (
+                  proofLogs.map((log, i) => (
+                    <div key={i} className="break-all flex gap-2">
+                      <span className="opacity-40 select-none min-w-[30px]">
+                          {new Date().toLocaleTimeString([], {hour12: false, minute:'2-digit', second:'2-digit'})}
+                      </span>
+                      <span className={cn(
+                          log.includes('ERROR') ? 'text-red-400' : 
+                          log.includes('Successfully') ? 'text-green-400 font-bold' : 
+                          'text-gray-300'
+                      )}>{log}</span>
+                    </div>
+                  ))
+                )}
+                {proofStatus === 'generating' && (
+                   <div className="animate-pulse text-green-500/50 mt-1">_ Processing...</div>
+                )}
+                {proofStatus === 'completed' && (
+                   <div className="text-green-400 font-bold mt-2 border-t border-white/10 pt-2">
+                      ✨ Proof Generation Complete
+                   </div>
+                )}
+             </div>
+          </div>
+        )}
+
+        {/* Current Step Card - Main Focus */}
+        {currentStepDetails && currentPhaseGroup && (
+          <Card className="overflow-hidden rounded-2xl border border-border/40 backdrop-blur-xl bg-background/40 shadow-2xl shadow-black/5 transition-all duration-500">
+            <CardHeader className="pb-2 pt-4 px-4 sm:px-5">
                 <div className="flex items-center gap-3">
                   <div className={cn(
                     'flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-500',
@@ -636,107 +688,6 @@ export function UnifiedMintProgress({
               </CardContent>
             </Card>
           )}
-        </div>
-
-        {/* Right Column: ZK Proof Terminal & Detailed Steps */}
-        <div className="space-y-4">
-          {/* ZK Proof Terminal */}
-          {(proofStatus !== 'idle' || proofLogs.length > 0) && (
-            <div className="rounded-xl border border-border/40 bg-black/90 text-green-500 font-mono text-xs p-0 shadow-inner overflow-hidden flex flex-col h-[200px]">
-               <div className="flex items-center justify-between bg-white/5 px-3 py-2 border-b border-white/10">
-                  <div className="flex items-center gap-2">
-                      <Terminal className="h-3 w-3" />
-                      <span className="opacity-70 font-semibold text-[10px]">ZK Proof Logs</span>
-                  </div>
-                  <div className="flex gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-red-500/50"></div>
-                      <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>
-                      <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
-                  </div>
-               </div>
-               <div 
-                  ref={scrollRef}
-                  className="flex-1 overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent p-3 font-mono text-[10px] sm:text-xs leading-relaxed"
-                >
-                  {proofLogs.length === 0 && proofStatus === 'idle' ? (
-                    <div className="flex items-center gap-2 opacity-40 animate-pulse">
-                       <span>_</span>
-                       <span>Waiting to start...</span>
-                    </div>
-                  ) : proofLogs.length === 0 && proofStatus === 'generating' ? (
-                     <div className="flex items-center gap-2 opacity-60">
-                       <Loader2 className="h-3 w-3 animate-spin" />
-                       <span>Initializing proof generation...</span>
-                     </div>
-                  ) : (
-                    proofLogs.map((log, i) => (
-                      <div key={i} className="break-all flex gap-2">
-                        <span className="opacity-40 select-none min-w-[30px]">
-                            {new Date().toLocaleTimeString([], {hour12: false, minute:'2-digit', second:'2-digit'})}
-                        </span>
-                        <span className={cn(
-                            log.includes('ERROR') ? 'text-red-400' : 
-                            log.includes('Successfully') ? 'text-green-400 font-bold' : 
-                            'text-gray-300'
-                        )}>{log}</span>
-                      </div>
-                    ))
-                  )}
-                  {proofStatus === 'generating' && (
-                     <div className="animate-pulse text-green-500/50 mt-1">_ Processing...</div>
-                  )}
-                  {proofStatus === 'completed' && (
-                     <div className="text-green-400 font-bold mt-2 border-t border-white/10 pt-2">
-                        ✨ Proof Generation Complete
-                     </div>
-                  )}
-               </div>
-            </div>
-          )}
-
-          {/* Detailed Steps - Vertical List */}
-          <div className="rounded-xl border border-border/40 bg-background/40 backdrop-blur overflow-hidden">
-              <div className="px-3 py-2.5 border-b border-border/20 bg-muted/10">
-                  <h4 className="text-[10px] font-bold text-foreground/80 uppercase tracking-wider">Detailed Steps</h4>
-              </div>
-              <div className="p-2 max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-border/50">
-                {stepConfigs.map((step) => {
-                  const status = getStepStatus(step)
-                  return (
-                    <div key={step.key} className={cn(
-                        "flex items-start gap-2.5 p-2 rounded-lg transition-all duration-300",
-                        step.key === currentStep ? "bg-primary/5 border border-primary/10 shadow-sm" : "hover:bg-muted/20"
-                    )}>
-                       <div className="flex-shrink-0 relative mt-0.5">
-                          {status === 'complete' ? (
-                             <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                          ) : step.key === currentStep ? (
-                             <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
-                          ) : (
-                             <Circle className="h-3.5 w-3.5 text-muted-foreground/30" />
-                          )}
-                       </div>
-                       <div className="flex-1 min-w-0">
-                           <p className={cn(
-                             "text-[10px] font-medium",
-                             status === 'complete' ? "text-muted-foreground/70" :
-                             step.key === currentStep ? "text-foreground font-semibold" :
-                             "text-muted-foreground/50"
-                           )}>
-                             {step.label}
-                           </p>
-                           {step.key === currentStep && step.description && (
-                               <p className="text-[9px] text-muted-foreground mt-0.5">
-                                   {step.description}
-                               </p>
-                           )}
-                       </div>
-                    </div>
-                  )
-                })}
-              </div>
-          </div>
-        </div>
       </div>
     </div>
   )
