@@ -1156,10 +1156,10 @@ export default function CreateMark() {
 
                     {/* Unified Mint Flow Modal - Non-dismissible */}
                     {isUnifiedFlow && unifiedStep && selectedEmail && (
-                      <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-6 sm:px-6 animate-in fade-in duration-300">
+                      <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-8 sm:px-6 sm:py-12 animate-in fade-in duration-300">
                         {/* Glassmorphic Backdrop */}
                         <div
-                          className="fixed inset-0 backdrop-blur-md"
+                          className="fixed inset-0 z-[100] backdrop-blur-md"
                           style={{
                             background: 'rgba(0, 0, 0, 0.4)',
                             backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
@@ -1168,7 +1168,7 @@ export default function CreateMark() {
                         />
 
                         <div 
-                          className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300 card-glass"
+                          className="relative z-[101] w-full max-w-lg max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300 card-glass flex flex-col"
                           style={{
                             borderRadius: 'var(--figma-card-radius)',
                             background: 'var(--glass-bg-primary)',
@@ -1178,7 +1178,67 @@ export default function CreateMark() {
                             boxShadow: 'var(--glass-shadow)',
                           }}
                         >
-                          <div className="relative overflow-y-auto max-h-[90vh] p-6">
+                          {/* Header - Sticky Top */}
+                          {unifiedStep !== 'mint-complete' && (
+                            <div className="sticky top-0 z-10 px-6 pt-6 pb-4 bg-background/80 backdrop-blur-md border-b border-border/50">
+                              <div className="flex items-start gap-2">
+                                {/* Header - Two Row Compact Design */}
+                                <div className="flex-1 px-2.5 py-2 rounded-xl border backdrop-blur-sm transition-all" style={{ 
+                                  borderColor: 'var(--glass-border)',
+                                  backgroundColor: 'var(--glass-bg-tertiary)',
+                                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                                }}>
+                                  {/* Row 1: Subject */}
+                                  <div>
+                                    <h3 className="text-sm font-semibold truncate leading-tight" style={{ color: 'var(--page-text-primary)' }}>
+                                      {selectedEmail?.subject || 'Mint Your Mintmark'}
+                                    </h3>
+                                  </div>
+                                  
+                                  {/* Row 2: Meta Info & Badges */}
+                                  <div className="flex items-center gap-2 mt-1.5">
+                                    <span className="text-[10px] text-muted-foreground truncate flex-shrink-0" style={{ color: 'var(--page-text-secondary)' }}>
+                                      {selectedEmail?.from?.split('<')[0]?.trim() || 'Event'}
+                                    </span>
+                                    <span className="text-[10px] text-border">•</span>
+                                    <span className="text-[10px] text-muted-foreground whitespace-nowrap flex-shrink-0" style={{ color: 'var(--page-text-secondary)' }}>
+                                      {selectedEmail?.date ? new Date(selectedEmail.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Today'}
+                                    </span>
+                                    <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-medium border border-primary/20 whitespace-nowrap">
+                                        Celo
+                                      </span>
+                                      <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md border text-[9px] font-medium whitespace-nowrap" style={{ 
+                                        borderColor: 'var(--glass-border)', 
+                                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                                        color: 'var(--page-text-primary)' 
+                                      }}>
+                                        <Shield className="w-2.5 h-2.5 text-green-500 flex-shrink-0" />
+                                        <span>ZK</span>
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {/* Close Button - Right Side */}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={handleCloseUnifiedFlow}
+                                  className="h-6 w-6 rounded-md border transition-all hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive flex-shrink-0 mt-0.5"
+                                  style={{
+                                    borderColor: 'var(--glass-border)',
+                                    color: 'var(--page-text-muted)',
+                                    backgroundColor: 'var(--glass-bg-secondary)'
+                                  }}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                          
+                          <div className="relative overflow-y-auto flex-1 p-6">
                             {unifiedStep === 'mint-complete' ? (
                               /* Success State */
                               <div className="text-center space-y-6 py-4">
@@ -1230,59 +1290,6 @@ export default function CreateMark() {
                             ) : (
                               /* Progress State */
                               <div className="space-y-6">
-                                {/* Header - Two Row Compact Design */}
-                                <div className="relative px-2.5 py-2 rounded-xl border backdrop-blur-sm transition-all" style={{ 
-                                  borderColor: 'var(--glass-border)',
-                                  backgroundColor: 'var(--glass-bg-tertiary)',
-                                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-                                }}>
-                                  {/* Close Button - Top Right */}
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={handleCloseUnifiedFlow}
-                                    className="absolute top-1.5 right-1.5 h-6 w-6 rounded-md border transition-all hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive z-10"
-                                    style={{
-                                      borderColor: 'var(--glass-border)',
-                                      color: 'var(--page-text-muted)',
-                                      backgroundColor: 'var(--glass-bg-secondary)'
-                                    }}
-                                  >
-                                    <X className="h-3.5 w-3.5" />
-                                  </Button>
-                                  
-                                  {/* Row 1: Subject */}
-                                  <div className="pr-8">
-                                    <h3 className="text-sm font-semibold truncate leading-tight" style={{ color: 'var(--page-text-primary)' }}>
-                                      {selectedEmail?.subject || 'Mint Your Mintmark'}
-                                    </h3>
-                                  </div>
-                                  
-                                  {/* Row 2: Meta Info & Badges */}
-                                  <div className="flex items-center gap-2 mt-1.5 pr-8">
-                                    <span className="text-[10px] text-muted-foreground truncate flex-shrink-0" style={{ color: 'var(--page-text-secondary)' }}>
-                                      {selectedEmail?.from?.split('<')[0]?.trim() || 'Event'}
-                                    </span>
-                                    <span className="text-[10px] text-border">•</span>
-                                    <span className="text-[10px] text-muted-foreground whitespace-nowrap flex-shrink-0" style={{ color: 'var(--page-text-secondary)' }}>
-                                      {selectedEmail?.date ? new Date(selectedEmail.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Today'}
-                                    </span>
-                                    <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
-                                      <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-medium border border-primary/20 whitespace-nowrap">
-                                        Celo
-                                      </span>
-                                      <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md border text-[9px] font-medium whitespace-nowrap" style={{ 
-                                        borderColor: 'var(--glass-border)', 
-                                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                                        color: 'var(--page-text-primary)' 
-                                      }}>
-                                        <Shield className="w-2.5 h-2.5 text-green-500 flex-shrink-0" />
-                                        <span>ZK</span>
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-
                                 {/* Unified Progress Component */}
             <UnifiedMintProgress
               currentStep={unifiedStep}
