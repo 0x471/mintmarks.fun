@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSendEvmTransaction, useEvmAddress, useSignInWithEmail, useVerifyEmailOTP } from '@coinbase/cdp-hooks'
+import { parseEther } from 'viem'
 import { useEvmBalance } from '@/hooks/useEvmBalance'
 import { useTransactionStatus } from '@/hooks/useTransactionStatus'
 import { NETWORKS, type SupportedNetwork } from '@/config/chains'
@@ -11,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Input } from './ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { X, Send, Copy, Check, ArrowDownLeft, CreditCard, Loader2, ExternalLink, Plus, Minus, Wallet } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { NetworkSelector } from './NetworkSelector'
 
 interface WalletOperationsModalProps {
   isOpen: boolean
@@ -47,7 +48,7 @@ export function WalletOperationsModal({
   const [flowId, setFlowId] = useState<string | null>(null)
   
   // Enhanced hooks for better EOA wallet support
-  const { balance: networkBalance, isLoading: isLoadingBalance, refetch: refetchBalance } = useEvmBalance(selectedNetwork)
+  const { balance: networkBalance, isLoading: isLoadingBalance, refetch: refetchBalance } = useEvmBalance(undefined, selectedNetwork)
   const { status: txStatus, receipt: txReceipt, trackTransaction, clearStatus } = useTransactionStatus()
   
   const [activeTab, setActiveTab] = useState<'send' | 'receive' | 'onramp'>('send')
@@ -156,31 +157,27 @@ export function WalletOperationsModal({
       setIsSending(true)
       clearStatus() // Clear any previous transaction status
       
-      // Convert to wei based on selected network
-      const amountWei = BigInt(Math.floor(amount * 10 ** networkConfig.nativeCurrency.decimals))
-
-      console.log('[Wallet] 💰 Sending EOA transaction:', {
+      console.log('[Wallet] 💰 Sending EOA transaction via CDP React Hooks (official pattern):', {
         network: selectedNetwork,
         from: walletAddress,
         to: sendToAddress,
         amount: `${amount} ${networkConfig.nativeCurrency.symbol}`,
-        amountWei: amountWei.toString(),
-        chainId: networkConfig.id,
       })
 
+      // Use CDP React Hooks - follow official documentation exactly
       const result = await sendEvmTransaction({
-        evmAccount: walletAddress as `0x${string}`,
-        // @ts-ignore - Celo Sepolia might not be officially supported
-        network: networkConfig.cdpNetwork,
         transaction: {
-          to: sendToAddress as `0x${string}`,
-          value: amountWei,
-          data: '0x',
-          chainId: networkConfig.id,
-        }
+          to: sendToAddress as `0x${string}`,           // Type cast for viem
+          value: parseEther(amount.toString()),
+          gas: 21000n,                                  // Standard ETH transfer gas limit
+          chainId: networkConfig.id,                    // Network chain ID
+          type: "eip1559",                             // Modern gas fee model (string format!)
+        },
+        evmAccount: walletAddress as `0x${string}`,    // Type cast for CDP
+        network: networkConfig.cdpNetwork as any,      // Type cast for CDP network enum
       })
 
-      console.log('[Wallet] ✅ EOA Transaction submitted:', result.transactionHash)
+      console.log('[Wallet] ✅ EOA Transaction submitted via React Hooks:', result.transactionHash)
       
       // Start tracking transaction status
       trackTransaction(result.transactionHash, selectedNetwork)
@@ -206,8 +203,9 @@ export function WalletOperationsModal({
   const handleOnramp = () => {
     // Open Coinbase onramp in new tab
     // Note: This would typically use Coinbase Pay SDK or redirect to Coinbase
-    const asset = selectedNetwork === 'celo-sepolia' ? 'CELO' : 'ETH'
-    const network = selectedNetwork === 'celo-sepolia' ? 'celo-sepolia' : 'base-sepolia'
+    const networkConfig = NETWORKS[selectedNetwork]
+    const asset = networkConfig.nativeCurrency.symbol
+    const network = networkConfig.cdpNetwork
     const onrampUrl = `https://pay.coinbase.com/buy/select-asset?destinationWallets=[{"address":"${walletAddress}","assets":["${asset}"],"supportedNetworks":["${network}"]}]`
     window.open(onrampUrl, '_blank')
   }
@@ -291,7 +289,7 @@ export function WalletOperationsModal({
 
       {/* Modal */}
       <div 
-        className="relative w-full max-w-md max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300 card-glass"
+        className="relative w-full max-w-md flex flex-col animate-in zoom-in-95 duration-300 card-glass max-h-[90vh]"
         style={{
           zIndex: 101,
           borderRadius: 'var(--figma-card-radius)',
@@ -303,7 +301,7 @@ export function WalletOperationsModal({
         }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b" style={{ borderColor: 'var(--glass-border)' }}>
+        <div className="flex items-center justify-between p-6 border-b shrink-0" style={{ borderColor: 'var(--glass-border)' }}>
           <div>
             <h2 className="text-xl font-bold tracking-tight" style={{ color: 'var(--page-text-primary)' }}>
               Wallet Operations
@@ -328,7 +326,7 @@ export function WalletOperationsModal({
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto p-6 min-h-0">
           {needsWalletCreation ? (
             /* Wallet Creation UI */
             <div className="space-y-6">
@@ -463,77 +461,19 @@ export function WalletOperationsModal({
 
             {/* Send Tab */}
             <TabsContent value="send" className="space-y-4 mt-0">
-              {/* Compact Horizontal Network Selection */}
+              {/* Compact Network Selection */}
               {propOnNetworkChange && (
-                <div className="border rounded-xl mb-4 p-3" style={{ 
-                  backgroundColor: 'var(--glass-bg-tertiary)',
-                  borderColor: 'var(--glass-border)',
-                  borderRadius: 'var(--figma-card-radius)'
-                }}>
+                <div className="mb-4">
                   <label className="text-xs font-semibold mb-2 block" style={{ color: 'var(--page-text-primary)' }}>
                     Network
                   </label>
-
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {Object.entries(NETWORKS).map(([networkKey, config]) => (
-                      <button
-                        key={networkKey}
-                        onClick={() => handleNetworkChange(networkKey as SupportedNetwork)}
-                        className={cn(
-                          "flex flex-col items-center p-2 rounded-lg text-[10px] font-medium transition-all duration-200 border relative overflow-hidden",
-                          selectedNetwork === networkKey
-                            ? "border-blue-400/50 shadow-md"
-                            : "border-transparent hover:bg-white/5"
-                        )}
-                        style={{
-                          backgroundColor: selectedNetwork === networkKey 
-                            ? 'var(--figma-cta1-bg)' 
-                            : 'var(--glass-bg-secondary)',
-                          color: selectedNetwork === networkKey 
-                            ? 'var(--figma-cta1-text)' 
-                            : 'var(--page-text-primary)',
-                        }}
-                      >
-                        {/* Network Indicator */}
-                        <div 
-                          className={cn(
-                            "w-2 h-2 rounded-full mb-1",
-                            networkKey.includes('base') ? "bg-blue-500" : "bg-green-500"
-                          )}
-                        />
-                        
-                        {/* Network Name */}
-                        <div className="font-semibold text-center leading-tight">
-                          {config.name.replace(' Sepolia', '').replace(' Mainnet', '')}
-                        </div>
-                        
-                        {/* Currency & Chain ID */}
-                        <div className="text-[8px] opacity-70 text-center">
-                          {config.nativeCurrency.symbol} • {config.id}
-                        </div>
-                        
-                        {/* Network Type Badge */}
-                        <div className="mt-1">
-                          {config.isTestnet ? (
-                            <span className="text-[7px] px-1 py-0.5 rounded bg-yellow-500/20 text-yellow-300 font-medium">
-                              TEST
-                            </span>
-                          ) : (
-                            <span className="text-[7px] px-1 py-0.5 rounded bg-red-500/20 text-red-300 font-medium">
-                              MAIN
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Selected Indicator */}
-                        {selectedNetwork === networkKey && (
-                          <div className="absolute top-1 right-1">
-                            <Check className="h-2.5 w-2.5" />
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
+                  <NetworkSelector 
+                    variant="modal"
+                    selectedNetwork={selectedNetwork}
+                    onNetworkChange={handleNetworkChange}
+                    showBalance={true}
+                    evmAddress={walletAddress || undefined}
+                  />
                   
                   {/* Info Note */}
                   <div className="mt-2 text-center">

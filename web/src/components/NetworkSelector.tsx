@@ -1,59 +1,111 @@
 // React import not needed in modern React with JSX transform
-import { Check, ChevronDown, Globe } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useNetwork } from '../contexts/NetworkContext';
 import { NETWORKS, type SupportedNetwork } from '../config/chains';
-import { Button } from './ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from './ui/dropdown-menu';
 import { cn } from '../lib/utils';
 
-export function NetworkSelector() {
-  const { selectedNetwork, setNetwork } = useNetwork();
+interface NetworkSelectorProps {
+  variant?: 'header' | 'modal' | 'compact'
+  className?: string
+  onNetworkChange?: (network: SupportedNetwork) => void
+  selectedNetwork?: SupportedNetwork
+  showBalance?: boolean
+  evmAddress?: string
+}
+
+export function NetworkSelector({ 
+  variant = 'header', 
+  className,
+  onNetworkChange,
+  selectedNetwork: propSelectedNetwork,
+  showBalance = false,
+  evmAddress
+}: NetworkSelectorProps = {}) {
+  const { selectedNetwork: contextNetwork, setNetwork: contextSetNetwork } = useNetwork();
+  
+  // Support both controlled (via props) and uncontrolled (via context) mode
+  const selectedNetwork = propSelectedNetwork || contextNetwork;
+  const handleNetworkChange = onNetworkChange || contextSetNetwork;
   const currentNetwork = NETWORKS[selectedNetwork];
 
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
+  // All variants now use native select for reliability
+
+  // Temporary: Use native select for reliability
+  if (variant === 'modal') {
+    return (
+      <div className="w-full">
+        <select 
+          value={selectedNetwork}
+          onChange={(e) => handleNetworkChange(e.target.value as SupportedNetwork)}
           className={cn(
-            "h-9 gap-2 rounded-full border border-transparent bg-[var(--glass-bg-secondary)] px-3",
-            "hover:bg-[var(--glass-bg-primary)] hover:border-[var(--nav-border)]",
-            "transition-all duration-300"
+            "w-full h-10 rounded-xl px-4 border bg-transparent text-sm font-medium",
+            "bg-[var(--glass-bg-tertiary)] border-[var(--glass-border)]",
+            "text-[var(--page-text-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500",
+            className
           )}
+          style={{
+            backgroundColor: 'var(--glass-bg-tertiary)',
+            borderColor: 'var(--glass-border)',
+            color: 'var(--page-text-primary)'
+          }}
         >
-          <Globe className="h-4 w-4 text-[var(--page-text-secondary)]" />
-          <span className="hidden sm:inline text-xs font-medium text-[var(--page-text-primary)]">
-            {currentNetwork.name}
-          </span>
-          <ChevronDown className="h-3 w-3 text-[var(--page-text-muted)] opacity-50" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[200px]">
+          {Object.values(NETWORKS).map((network) => (
+            <option 
+              key={network.cdpNetwork} 
+              value={network.cdpNetwork}
+              style={{
+                backgroundColor: 'var(--glass-bg-primary)',
+                color: 'var(--page-text-primary)'
+              }}
+            >
+              {network.name} - {network.nativeCurrency.symbol} • {network.id} {network.isTestnet ? '(TEST)' : '(MAIN)'}
+            </option>
+          ))}
+        </select>
+        {showBalance && evmAddress && (
+          <div className="mt-2 text-xs text-[var(--page-text-muted)]">
+            Balance will be shown here when implemented
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // For header, use native select like modal
+  return (
+    <div className="relative">
+      <select 
+        value={selectedNetwork}
+        onChange={(e) => handleNetworkChange(e.target.value as SupportedNetwork)}
+        className={cn(
+          "h-9 rounded-full px-3 border-0 bg-transparent text-xs font-medium appearance-none cursor-pointer",
+          "bg-[var(--glass-bg-secondary)] text-[var(--page-text-primary)]",
+          "hover:bg-[var(--glass-bg-primary)] focus:outline-none focus:ring-2 focus:ring-blue-500",
+          "pr-8", // Space for chevron icon
+          className
+        )}
+        style={{
+          backgroundColor: 'var(--glass-bg-secondary)',
+          color: 'var(--page-text-primary)'
+        }}
+      >
         {Object.values(NETWORKS).map((network) => (
-          <DropdownMenuItem
-            key={network.cdpNetwork}
-            onClick={() => setNetwork(network.cdpNetwork as SupportedNetwork)}
-            className="flex items-center justify-between gap-2 cursor-pointer"
+          <option 
+            key={network.cdpNetwork} 
+            value={network.cdpNetwork}
+            style={{
+              backgroundColor: 'var(--glass-bg-primary)',
+              color: 'var(--page-text-primary)'
+            }}
           >
-            <span className="flex flex-col gap-0.5">
-              <span className="font-medium">{network.name}</span>
-              <span className="text-xs text-muted-foreground">
-                {network.isTestnet ? 'Testnet' : 'Mainnet'}
-              </span>
-            </span>
-            {selectedNetwork === network.cdpNetwork && (
-              <Check className="h-4 w-4 text-green-500" />
-            )}
-          </DropdownMenuItem>
+            {network.name}
+          </option>
         ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </select>
+      
+      {/* Custom chevron icon */}
+      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-[var(--page-text-muted)] opacity-50 pointer-events-none" />
+    </div>
   );
 }
 
