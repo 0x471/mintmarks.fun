@@ -16,7 +16,6 @@ import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card'
 import { ProgressBadge } from './ProgressBadge'
-import { USDCLogo } from './USDCLogo'
 
 // Simplified 3-step unified flow
 export type UnifiedMintStep = 
@@ -574,15 +573,15 @@ export function UnifiedMintProgress({
                         }}>
                           <div className="relative">
                             <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--page-text-primary)' }}>Minting Fee</p>
-                            <p className="text-[10px]" style={{ color: 'var(--page-text-secondary)' }}>Base Network Gas + Service</p>
+                            <p className="text-[10px]" style={{ color: 'var(--page-text-secondary)' }}>Celo Sepolia Gas + Service</p>
                           </div>
                           <div className="flex items-center gap-1.5 relative px-2.5 py-1 border" style={{ 
                             backgroundColor: 'var(--glass-bg-secondary)',
                             borderColor: 'var(--glass-border)',
                             borderRadius: 'calc(var(--figma-card-radius) - 2px)'
                           }}>
-                            <USDCLogo className="h-5 w-5" />
-                            <span className="text-sm font-bold" style={{ color: 'var(--page-text-primary)' }}>1.00 USDC</span>
+                            <Coins className="h-5 w-5" style={{ color: 'var(--page-text-primary)' }} />
+                            <span className="text-sm font-bold" style={{ color: 'var(--page-text-primary)' }}>1.00 CELO</span>
                           </div>
                         </div>
                         

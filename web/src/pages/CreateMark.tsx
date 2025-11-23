@@ -1231,30 +1231,32 @@ export default function CreateMark() {
                               /* Progress State */
                               <div className="space-y-6">
                                 {/* Header - Minimal Horizontal Row */}
-                                <div className="flex items-center gap-2 text-[10px] px-1 py-1 rounded-lg border" style={{ 
-                                  borderColor: 'var(--glass-border)',
-                                  backgroundColor: 'var(--glass-bg-tertiary)'
-                                }}>
-                                  <span className="font-semibold text-foreground truncate flex-1">
-                                    {selectedEmail?.subject || 'Mint Your Mintmark'}
-                                  </span>
-                                  <span className="flex items-center gap-1 text-[9px] text-muted-foreground whitespace-nowrap">
-                                    <span>{selectedEmail?.from?.split('<')[0] || 'Event'}</span>
-                                    <span>•</span>
-                                    <span>{selectedEmail?.date ? new Date(selectedEmail.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Today'}</span>
-                                  </span>
-                                  <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20 whitespace-nowrap">
-                                    Celo
-                                  </span>
-                                  <span className="flex items-center gap-0.5 px-1 py-0.5 rounded-full border text-[8px]" style={{ borderColor: 'var(--glass-border)', color: 'var(--page-text-primary)' }}>
-                                    <Shield className="w-2.5 h-2.5 text-green-500" />
-                                    ZK
-                                  </span>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 text-[10px] px-1 py-1 rounded-lg border flex-1" style={{ 
+                                    borderColor: 'var(--glass-border)',
+                                    backgroundColor: 'var(--glass-bg-tertiary)'
+                                  }}>
+                                    <span className="font-semibold text-foreground truncate flex-1">
+                                      {selectedEmail?.subject || 'Mint Your Mintmark'}
+                                    </span>
+                                    <span className="flex items-center gap-1 text-[9px] text-muted-foreground whitespace-nowrap">
+                                      <span>{selectedEmail?.from?.split('<')[0] || 'Event'}</span>
+                                      <span>•</span>
+                                      <span>{selectedEmail?.date ? new Date(selectedEmail.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Today'}</span>
+                                    </span>
+                                    <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20 whitespace-nowrap">
+                                      Celo
+                                    </span>
+                                    <span className="flex items-center gap-0.5 px-1 py-0.5 rounded-full border text-[8px]" style={{ borderColor: 'var(--glass-border)', color: 'var(--page-text-primary)' }}>
+                                      <Shield className="w-2.5 h-2.5 text-green-500" />
+                                      ZK
+                                    </span>
+                                  </div>
                                   <Button
                                     variant="ghost"
                                     size="icon"
                                     onClick={handleCloseUnifiedFlow}
-                                    className="h-6 w-6 rounded-md border transition-colors"
+                                    className="h-6 w-6 rounded-md border transition-colors flex-shrink-0"
                                     style={{
                                       borderColor: 'var(--glass-border)',
                                       color: 'var(--page-text-muted)',
