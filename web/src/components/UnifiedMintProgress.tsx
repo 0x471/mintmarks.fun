@@ -250,21 +250,21 @@ export function UnifiedMintProgress({
       <div className="space-y-4">
         {/* ZK Proof Terminal - At Top */}
         {(proofStatus !== 'idle' || proofLogs.length > 0) && (
-          <div className="rounded-xl border border-border/40 bg-black/90 text-green-500 font-mono text-xs p-0 shadow-inner overflow-hidden flex flex-col h-[200px]">
-             <div className="flex items-center justify-between bg-white/5 px-3 py-2 border-b border-white/10">
+          <div className="rounded-xl border border-border/40 bg-black/90 text-green-500 font-mono text-xs p-0 shadow-inner overflow-hidden flex flex-col h-[120px]">
+             <div className="flex items-center justify-between bg-white/5 px-3 py-1.5 border-b border-white/10">
                 <div className="flex items-center gap-2">
                     <Terminal className="h-3 w-3" />
                     <span className="opacity-70 font-semibold text-[10px]">ZK Proof Logs</span>
                 </div>
                 <div className="flex gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-red-500/50"></div>
-                    <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>
-                    <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500/50"></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-yellow-500/50"></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500/50"></div>
                 </div>
              </div>
              <div 
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent p-3 font-mono text-[10px] sm:text-xs leading-relaxed"
+                className="flex-1 overflow-y-auto space-y-1 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent p-2 font-mono text-[9px] leading-relaxed"
               >
                 {proofLogs.length === 0 && proofStatus === 'idle' ? (
                   <div className="flex items-center gap-2 opacity-40 animate-pulse">
@@ -279,7 +279,7 @@ export function UnifiedMintProgress({
                 ) : (
                   proofLogs.map((log, i) => (
                     <div key={i} className="break-all flex gap-2">
-                      <span className="opacity-40 select-none min-w-[30px]">
+                      <span className="opacity-40 select-none min-w-[24px]">
                           {new Date().toLocaleTimeString([], {hour12: false, minute:'2-digit', second:'2-digit'})}
                       </span>
                       <span className={cn(
@@ -294,7 +294,7 @@ export function UnifiedMintProgress({
                    <div className="animate-pulse text-green-500/50 mt-1">_ Processing...</div>
                 )}
                 {proofStatus === 'completed' && (
-                   <div className="text-green-400 font-bold mt-2 border-t border-white/10 pt-2">
+                   <div className="text-green-400 font-bold mt-1 border-t border-white/10 pt-1">
                       ✨ Proof Generation Complete
                    </div>
                 )}
@@ -584,8 +584,9 @@ export function UnifiedMintProgress({
                     
                     {/* Epoch Markers */}
                     <div className="relative flex items-center justify-between w-full">
-                      {[0, 33, 66, 100].map((pos, i) => {
+                      {[0, 50, 100].map((pos, i) => {
                         const isCompleted = currentProgress >= pos
+                        const labels = ['Proof Generation', 'Connect Wallet', 'Mint Complete']
                         
                         return (
                           <div 
@@ -613,11 +614,11 @@ export function UnifiedMintProgress({
                             {/* Epoch Label */}
                             <span 
                               className={cn(
-                                "text-[9px] font-semibold mt-2 whitespace-nowrap transition-all duration-300",
+                                "text-[9px] font-semibold mt-2 whitespace-nowrap transition-all duration-300 absolute top-4",
                                 isCompleted ? "text-primary opacity-100" : "text-muted-foreground opacity-50"
                               )}
                             >
-                              {pos}%
+                              {labels[i]}
                             </span>
                           </div>
                         )
@@ -628,7 +629,7 @@ export function UnifiedMintProgress({
                   {/* Expandable Steps Button */}
                   <button
                     onClick={() => setIsStepsExpanded(!isStepsExpanded)}
-                    className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg border border-border/40 bg-muted/20 hover:bg-muted/40 transition-all duration-200 text-[10px] text-muted-foreground hover:text-foreground group"
+                    className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg border border-border/40 bg-muted/20 hover:bg-muted/40 transition-all duration-200 text-[10px] text-muted-foreground hover:text-foreground group mt-6"
                   >
                     <span className="font-medium">View detailed steps</span>
                     {isStepsExpanded ? (
