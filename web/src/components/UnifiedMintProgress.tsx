@@ -564,78 +564,64 @@ export function UnifiedMintProgress({
                   </div>
                 )}
 
-                {/* Epoch Progress */}
-                <div className="space-y-3 pt-2">
+                {/* Epoch Progress - Segmented Design */}
+                <div className="space-y-3 pt-3">
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-muted-foreground">Overall Progress</span>
-                    <span className="font-semibold text-primary">{currentProgress}%</span>
+                    <span className="text-muted-foreground font-medium">Progress</span>
+                    <span className="font-bold text-primary">{currentProgress}%</span>
                   </div>
                   
-                  {/* Epoch Progress Bar with Rounded Lines */}
-                  <div className="relative w-full py-3">
-                    {/* Background Track */}
-                    <div className="absolute left-0 top-1/2 w-full h-2 rounded-full -translate-y-1/2 bg-muted/30 dark:bg-muted/20" />
-                    
-                    {/* Progress Fill */}
-                    <div 
-                      className="absolute left-0 top-1/2 h-2 rounded-full transition-all duration-700 ease-out -translate-y-1/2 bg-primary shadow-lg shadow-primary/30" 
-                      style={{ width: `${currentProgress}%` }}
-                    />
-                    
-                    {/* Epoch Markers */}
-                    <div className="relative flex items-center justify-between w-full">
-                      {[0, 50, 100].map((pos, i) => {
-                        const isCompleted = currentProgress >= pos
-                        const labels = ['Proof Generation', 'Connect Wallet', 'Mint Complete']
-                        
-                        return (
-                          <div 
-                            key={i}
-                            className={cn(
-                              "relative flex flex-col items-center transition-all duration-300",
-                              isCompleted ? "z-10" : "z-0"
-                            )}
-                            style={{ left: `${pos}%`, transform: 'translateX(-50%)' }}
-                          >
-                            {/* Epoch Dot with Glow */}
+                  {/* Segmented Progress Bar */}
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { label: 'Proof Generation', range: [0, 33] },
+                      { label: 'Connect Wallet', range: [34, 66] },
+                      { label: 'Mint Complete', range: [67, 100] }
+                    ].map((segment, i) => {
+                      const isComplete = currentProgress >= segment.range[1];
+                      const isActive = currentProgress > segment.range[0] && currentProgress < segment.range[1];
+                      const isPending = currentProgress <= segment.range[0];
+                      
+                      return (
+                        <div key={i} className="flex flex-col gap-1.5 group">
+                          {/* Bar Segment */}
+                          <div className="relative h-1.5 w-full bg-muted/30 rounded-full overflow-hidden">
                             <div 
                               className={cn(
-                                "w-4 h-4 rounded-full border-2 transition-all duration-300 flex items-center justify-center",
-                                isCompleted 
-                                  ? "bg-primary border-primary shadow-lg shadow-primary/50 scale-110" 
-                                  : "bg-background border-muted/50 scale-100 dark:border-muted/30"
+                                "absolute inset-0 transition-all duration-500 ease-out rounded-full",
+                                isComplete ? "bg-primary" : 
+                                isActive ? "bg-primary w-full animate-pulse" : 
+                                "bg-transparent"
                               )}
-                            >
-                              {isCompleted && (
-                                <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
-                              )}
-                            </div>
-                            
-                            {/* Epoch Label */}
-                            <span 
-                              className={cn(
-                                "text-[9px] font-semibold mt-2 whitespace-nowrap transition-all duration-300 absolute top-4",
-                                isCompleted ? "text-primary opacity-100" : "text-muted-foreground opacity-50"
-                              )}
-                            >
-                              {labels[i]}
-                            </span>
+                              style={{
+                                width: isComplete ? '100%' : isActive ? '100%' : '0%',
+                                opacity: isActive ? 0.6 : 1
+                              }}
+                            />
                           </div>
-                        )
-                      })}
-                    </div>
+                          
+                          {/* Segment Label */}
+                          <span className={cn(
+                            "text-[9px] font-medium transition-colors duration-300 truncate",
+                            isComplete || isActive ? "text-primary" : "text-muted-foreground/50"
+                          )}>
+                            {segment.label}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                   
                   {/* Expandable Steps Button */}
                   <button
                     onClick={() => setIsStepsExpanded(!isStepsExpanded)}
-                    className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg border border-border/40 bg-muted/20 hover:bg-muted/40 transition-all duration-200 text-[10px] text-muted-foreground hover:text-foreground group mt-6"
+                    className="w-full flex items-center justify-between px-2 py-1.5 mt-2 rounded-lg hover:bg-muted/30 transition-all duration-200 text-[10px] text-muted-foreground hover:text-foreground group border border-transparent hover:border-border/20"
                   >
                     <span className="font-medium">View detailed steps</span>
                     {isStepsExpanded ? (
-                      <ChevronUp className="h-3 w-3 transition-transform" />
+                      <ChevronUp className="h-3 w-3 transition-transform text-muted-foreground group-hover:text-primary" />
                     ) : (
-                      <ChevronDown className="h-3 w-3 transition-transform group-hover:translate-y-0.5" />
+                      <ChevronDown className="h-3 w-3 transition-transform group-hover:translate-y-0.5 text-muted-foreground group-hover:text-primary" />
                     )}
                   </button>
                   
