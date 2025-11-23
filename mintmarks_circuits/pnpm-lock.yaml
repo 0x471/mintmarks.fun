@@ -11,6 +11,9 @@ importers:
       '@aztec/bb.js':
         specifier: 0.84.0
         version: 0.84.0
+      '@noir-lang/noir_js':
+        specifier: 1.0.0-beta.5
+        version: 1.0.0-beta.5
       '@zk-email/zkemail-nr':
         specifier: ^1.3.2
         version: 1.3.2
@@ -154,8 +157,14 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@noir-lang/acvm_js@1.0.0-beta.5':
+    resolution: {integrity: sha512-t2E2h7ZOkbP4+ukPfvicIGUHsF/gX0kxGIwQvOe+hcR7p2j6ttxWKBHBurQrGLuII9+6qUmp6P6fnOBNasoslQ==}
+
   '@noir-lang/acvm_js@1.0.0-beta.6':
     resolution: {integrity: sha512-/gaUKaUIon3xCekEIvrz9sUj+h1tue6CchNUZwmuXoqbwccRQchr850vbQMQxxnQvFIAfbaKD+Vkkh3RNWpG2Q==}
+
+  '@noir-lang/noir_js@1.0.0-beta.5':
+    resolution: {integrity: sha512-ab0h/MTbqqj/BqWkvSpeYtTcUrv645NgNteE208QRJiM9fEwL6RcLXb3Ms54csortzLB0CVMtnV3qGkeG+Xklg==}
 
   '@noir-lang/noir_js@1.0.0-beta.6':
     resolution: {integrity: sha512-FRHrCgRcyD4LAh4FtVYZh/wwdoV2px3kokudLl5GfFaBmXHCpXyA0jKzda3ObI/Teasl2VAE+ZQoV7ZKqq5txA==}
@@ -163,11 +172,17 @@ packages:
   '@noir-lang/noirc_abi@1.0.0-beta.15':
     resolution: {integrity: sha512-ZJ5pUSKiZ6Nyj6DcXmLkf/+OA12cApYq/XPYePxX7v1Z2mLLl1/Gj8dO/greHUYRD47ziXIgyaZQWryE3+4ifw==}
 
+  '@noir-lang/noirc_abi@1.0.0-beta.5':
+    resolution: {integrity: sha512-1ZH2oXlgwdrNliWLVbDxyY6UPCsZ+pjA8PiIdzeaE+Kpn6J3diX8MsbYHyx8em0Vn2MXWt+CSa90YdHWy+hKrw==}
+
   '@noir-lang/noirc_abi@1.0.0-beta.6':
     resolution: {integrity: sha512-AFRl7zAK1ooA7AeKTt5dSxjfcXdmpYU4imRx8MS/UGhuLvUULM6d+AQ/OGEb1kdGwnw+qN4REnxJg7R4qsRpVQ==}
 
   '@noir-lang/types@1.0.0-beta.15':
     resolution: {integrity: sha512-FCydHArW6+oOSCxSIsprOExDaBMmxh0a9+ZhXigxFDZF6j96wzy3WvA0XLgczZzAjWOiBPCr4voTW1bsM0Ca2A==}
+
+  '@noir-lang/types@1.0.0-beta.5':
+    resolution: {integrity: sha512-NNddtY4KMIA7cwa69A2NXeAVvzKX44fmojuwY1HBgzwraHOY1mWyaQC+Vl9Xm97fAm2qpXTrbVT6vPkhag0vHg==}
 
   '@noir-lang/types@1.0.0-beta.6':
     resolution: {integrity: sha512-YmNOpr51XIOrJ+yppPbDFlpAG6ZU7qh0Uu0ZCXmon2MGD4TlnC8d/ex7YzSUH/+3zgESuCmicKnMVxEFszgmtA==}
@@ -801,7 +816,7 @@ snapshots:
   '@iden3/binfileutils@0.0.11':
     dependencies:
       fastfile: 0.0.20
-      ffjavascript: 0.2.56
+      ffjavascript: 0.2.63
 
   '@mach-34/noir-bignum-paramgen@1.1.2': {}
 
@@ -823,7 +838,16 @@ snapshots:
   '@msgpackr-extract/msgpackr-extract-win32-x64@3.0.3':
     optional: true
 
+  '@noir-lang/acvm_js@1.0.0-beta.5': {}
+
   '@noir-lang/acvm_js@1.0.0-beta.6': {}
+
+  '@noir-lang/noir_js@1.0.0-beta.5':
+    dependencies:
+      '@noir-lang/acvm_js': 1.0.0-beta.5
+      '@noir-lang/noirc_abi': 1.0.0-beta.5
+      '@noir-lang/types': 1.0.0-beta.5
+      pako: 2.1.0
 
   '@noir-lang/noir_js@1.0.0-beta.6':
     dependencies:
@@ -836,11 +860,17 @@ snapshots:
     dependencies:
       '@noir-lang/types': 1.0.0-beta.15
 
+  '@noir-lang/noirc_abi@1.0.0-beta.5':
+    dependencies:
+      '@noir-lang/types': 1.0.0-beta.5
+
   '@noir-lang/noirc_abi@1.0.0-beta.6':
     dependencies:
       '@noir-lang/types': 1.0.0-beta.6
 
   '@noir-lang/types@1.0.0-beta.15': {}
+
+  '@noir-lang/types@1.0.0-beta.5': {}
 
   '@noir-lang/types@1.0.0-beta.6': {}
 

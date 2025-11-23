@@ -3,7 +3,8 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { ZKEmailProver } from '@zk-email/zkemail-nr/dist/prover.js';
+import { UltraHonkBackend, BarretenbergVerifier } from '@aztec/bb.js';
+import { Noir } from '@noir-lang/noir_js';
 import { generateEmailVerifierInputs, verifyDKIMSignature } from '@zk-email/zkemail-nr';
 import { getConstrainedHeaderSequence, getHeaderValueSequence, getEventNameSequence, decodeBoundedVec } from './utils.js';
 
@@ -94,12 +95,14 @@ async function generateAndVerifyProof(emlPath) {
   };
 
   console.log('\nInputs generated successfully');
-  console.log('\nInitializing ZKEmailProver with UltraHonk backend...');
-  const prover = new ZKEmailProver(circuit, 'honk', 1);
+  console.log('\nInitializing Noir and UltraHonk backend...');
+
+  const noir = new Noir(circuit);
+  const backend = new UltraHonkBackend(circuit.bytecode);
 
   try {
-    console.log('Simulating witness to get return values...');
-    const { returnValue } = await prover.simulateWitness(inputs);
+    console.log('Executing circuit to generate witness...');
+    const { witness, returnValue } = await noir.execute(inputs);
 
     console.log('\n=== Circuit Return Values ===');
     if (returnValue && returnValue.length >= 4) {
@@ -119,22 +122,27 @@ async function generateAndVerifyProof(emlPath) {
       console.log('Return values:', returnValue);
     }
 
-    console.log('\nGenerating UltraHonk proof...');
+    console.log('\nGenerating UltraHonk proof with Keccak hash (for EVM verification)...');
     const startProve = Date.now();
-    const proof = await prover.fullProve(inputs, 'honk');
+    const proof = await backend.generateProof(witness, { keccak: true });
     const proveTime = ((Date.now() - startProve) / 1000).toFixed(2);
 
     console.log(`\nProof generated in ${proveTime}s`);
     console.log(`Proof size: ${(proof.proof.length / 1024).toFixed(2)} KB`);
 
+    // Save proof and public inputs
     fs.writeFileSync(proofOutputPath, proof.proof);
-    fs.writeFileSync(publicInputsPath, JSON.stringify(proof.publicInputs || [], null, 2));
+
+    // Public inputs are already in hex format from backend
+    fs.writeFileSync(publicInputsPath, JSON.stringify(proof.publicInputs, null, 2));
+
     console.log(`\nProof saved: ${proofOutputPath}`);
     console.log(`Public inputs saved: ${publicInputsPath}`);
+    console.log(`Public inputs count: ${proof.publicInputs.length}`);
 
-    console.log('\nVerifying proof...');
+    console.log('\nVerifying proof with Keccak hash...');
     const startVerify = Date.now();
-    const verified = await prover.verify(proof, 'honk');
+    const verified = await backend.verifyProof(proof, { keccak: true });
     const verifyTime = ((Date.now() - startVerify) / 1000).toFixed(2);
 
     if (verified) {
@@ -153,8 +161,8 @@ async function generateAndVerifyProof(emlPath) {
     }
     process.exit(1);
   } finally {
-    // Clean up prover resources
-    await prover.destroy();
+    // Clean up backend resources
+    await backend.destroy();
   }
 }
 
