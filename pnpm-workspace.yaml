@@ -1,0 +1,5 @@
+packages:
+  - 'web'
+  - 'metadata'
+  - 'contracts'
+  - 'mintmarks_circuits'
