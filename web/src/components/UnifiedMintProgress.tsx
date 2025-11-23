@@ -11,7 +11,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import React from 'react'
-import { Loader2, CheckCircle2, Circle, Wallet, FileCheck, Coins, Zap, Shield, ChevronDown, ChevronUp, Info, ArrowRight, Mail, Terminal, Share2, X, Fingerprint } from 'lucide-react'
+import { Loader2, CheckCircle2, Circle, Wallet, FileCheck, Coins, Zap, ChevronDown, ChevronUp, Info, ArrowRight, Mail, Terminal, X, Fingerprint } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card'
@@ -141,7 +141,6 @@ interface UnifiedMintProgressProps {
 export function UnifiedMintProgress({
   currentStep,
   className,
-  onConnectWallet,
   onConnectCDPWallet,
   onConnectExternalWallet,
   onVerifySelfID,
@@ -149,7 +148,6 @@ export function UnifiedMintProgress({
   onPayFee,
   onChangeWallet,
   onClose,
-  onShare,
   walletAddress,
   error,
   showOtpInput,
@@ -202,8 +200,6 @@ export function UnifiedMintProgress({
   // Get current step details
   const currentStepDetails = stepConfigs.find(s => s.key === currentStep)
   const currentPhaseGroup = phaseGroups.find(g => g.phase === currentPhase)
-
-  const [isStepsExpanded, setIsStepsExpanded] = useState(false)
 
   return (
     <div className={cn('space-y-4 relative', className)}>
