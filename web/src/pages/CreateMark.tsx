@@ -536,7 +536,6 @@ export default function CreateMark() {
       // Check if CDP wallet already connected
       if (evmAddress && currentUser) {
         setWalletAddress(evmAddress)
-        setWalletType('cdp')
         setUnifiedStep('wallet-sign-prompt')
       } else {
         // Not connected, prompt user to connect (CDP or External)
@@ -586,7 +585,6 @@ export default function CreateMark() {
           if (user.evmAccounts && user.evmAccounts.length > 0) {
             const address = user.evmAccounts[0]
             setWalletAddress(address)
-            setWalletType('cdp')
             setUnifiedStep('wallet-connected')
             setShowOtpInput(false)
             setOtpCode('')
@@ -660,7 +658,6 @@ export default function CreateMark() {
       
       const address = accounts[0]
       setWalletAddress(address)
-      setWalletType('external')
       
       setUnifiedStep('wallet-connected')
       await new Promise(resolve => setTimeout(resolve, 500))
@@ -1321,7 +1318,6 @@ export default function CreateMark() {
                                   onChangeWallet={() => {
                                     // Reset wallet state to allow user to connect different wallet
                                     setWalletAddress(null)
-                                    setWalletType(null)
                                     setShowOtpInput(false)
                                     setOtpCode('')
                                     setFlowId(null)

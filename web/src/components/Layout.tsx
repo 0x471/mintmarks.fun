@@ -90,8 +90,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   <div 
                     className={`flex items-center justify-center h-6 w-6 rounded-full mr-2 transition-all duration-300 shrink-0 ${
                       hasWallet && !walletLoading 
-                        ? 'bg-green-500/20 text-green-500 dark:text-green-400 border border-green-500/30 shadow-[0_0_8px_rgba(34,197,94,0.3)]' 
-                        : 'bg-gray-500/20 text-gray-500 dark:text-gray-400 border border-gray-500/30'
+                        ? 'bg-green-500/15 text-green-500 dark:text-green-400 shadow-[0_0_12px_rgba(34,197,94,0.25)]' 
+                        : 'bg-gray-500/10 text-gray-500 dark:text-gray-400'
                     }`} 
                     title={hasWallet ? 'Wallet Connected' : 'No Wallet'}
                   >

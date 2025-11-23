@@ -133,7 +133,6 @@ interface UnifiedMintProgressProps {
   showOtpInput?: boolean
   otpEmail?: string
   otpCode?: string
-  onOtpEmailChange?: (email: string) => void
   onOtpCodeChange?: (code: string) => void
   isSendingOtp?: boolean
   isVerifyingOtp?: boolean
@@ -154,7 +153,6 @@ export function UnifiedMintProgress({
   showOtpInput,
   otpEmail,
   otpCode,
-  onOtpEmailChange,
   onOtpCodeChange,
   isSendingOtp,
   isVerifyingOtp,
