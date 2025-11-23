@@ -566,19 +566,19 @@ export function UnifiedMintProgress({
 
                 {/* Epoch Progress */}
                 <div className="space-y-3 pt-2">
-                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                    <span>Overall Progress</span>
-                    <span className="font-semibold text-foreground">{currentProgress}%</span>
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-muted-foreground">Overall Progress</span>
+                    <span className="font-semibold text-primary">{currentProgress}%</span>
                   </div>
                   
                   {/* Epoch Progress Bar with Rounded Lines */}
-                  <div className="relative w-full">
-                    {/* Background Line */}
-                    <div className="absolute left-0 top-1/2 w-full h-1.5 bg-muted/50 rounded-full -translate-y-1/2" />
+                  <div className="relative w-full py-3">
+                    {/* Background Track */}
+                    <div className="absolute left-0 top-1/2 w-full h-2 rounded-full -translate-y-1/2 bg-muted/30 dark:bg-muted/20" />
                     
-                    {/* Progress Line */}
+                    {/* Progress Fill */}
                     <div 
-                      className="absolute left-0 top-1/2 h-1.5 bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-700 ease-out -translate-y-1/2 shadow-sm" 
+                      className="absolute left-0 top-1/2 h-2 rounded-full transition-all duration-700 ease-out -translate-y-1/2 bg-primary shadow-lg shadow-primary/30" 
                       style={{ width: `${currentProgress}%` }}
                     />
                     
@@ -586,6 +586,7 @@ export function UnifiedMintProgress({
                     <div className="relative flex items-center justify-between w-full">
                       {[0, 33, 66, 100].map((pos, i) => {
                         const isCompleted = currentProgress >= pos
+                        
                         return (
                           <div 
                             key={i}
@@ -595,23 +596,29 @@ export function UnifiedMintProgress({
                             )}
                             style={{ left: `${pos}%`, transform: 'translateX(-50%)' }}
                           >
-                            {/* Epoch Dot */}
-                            <div className={cn(
-                              "w-3 h-3 rounded-full border-2 transition-all duration-300 shadow-sm",
-                              isCompleted 
-                                ? "bg-primary border-primary shadow-primary/20" 
-                                : "bg-background border-muted/50"
-                            )} />
+                            {/* Epoch Dot with Glow */}
+                            <div 
+                              className={cn(
+                                "w-4 h-4 rounded-full border-2 transition-all duration-300 flex items-center justify-center",
+                                isCompleted 
+                                  ? "bg-primary border-primary shadow-lg shadow-primary/50 scale-110" 
+                                  : "bg-background border-muted/50 scale-100 dark:border-muted/30"
+                              )}
+                            >
+                              {isCompleted && (
+                                <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
+                              )}
+                            </div>
                             
-                            {/* Epoch Label (Optional - can be shown on hover or when expanded) */}
-                            {isStepsExpanded && (
-                              <span className={cn(
-                                "text-[8px] font-medium mt-1 whitespace-nowrap",
-                                isCompleted ? "text-primary" : "text-muted-foreground/50"
-                              )}>
-                                {pos}%
-                              </span>
-                            )}
+                            {/* Epoch Label */}
+                            <span 
+                              className={cn(
+                                "text-[9px] font-semibold mt-2 whitespace-nowrap transition-all duration-300",
+                                isCompleted ? "text-primary opacity-100" : "text-muted-foreground opacity-50"
+                              )}
+                            >
+                              {pos}%
+                            </span>
                           </div>
                         )
                       })}
