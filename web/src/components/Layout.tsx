@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { VerticalBarsNoise } from './VerticalBarsNoise';
 import { Button } from './ui/button';
-import { Moon, Sun, Sparkles, Bookmark, Mail, LogOut } from 'lucide-react';
+import { Moon, Sun, Sparkles, Bookmark, Mail, LogOut, Wallet } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../contexts/AuthContext';
 import { useWalletStatus } from '../hooks/useWalletStatus';
@@ -66,20 +66,24 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             </Button>
 
             {isAuthenticated ? (
-              <div className="flex items-center gap-2 pl-2">
-                {/* User Profile & Wallet */}
-                <div className="group relative flex items-center gap-2 px-2 py-1.5 rounded-full bg-[var(--muted)]/50 border border-[var(--border)] hover:bg-[var(--muted)] transition-colors cursor-default min-w-[140px] sm:min-w-[180px]">
+              <div className="flex items-center gap-2">
+                {/* User Profile & Wallet Info */}
+                <div className="group relative flex items-center h-9 pl-1.5 pr-3 rounded-full border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-all duration-200 cursor-default min-w-[140px] sm:min-w-[180px]">
                   
-                  {/* Avatar */}
-                  <div className="h-5 w-5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
-                    {userEmail ? userEmail[0].toUpperCase() : 'U'}
+                  {/* Wallet Icon Box */}
+                  <div className={`flex items-center justify-center h-6 w-6 rounded-full mr-2 transition-colors duration-300 shrink-0 ${
+                      hasWallet && !walletLoading 
+                          ? 'bg-green-500/10 text-green-600 border border-green-500/20 shadow-[0_0_6px_rgba(34,197,94,0.2)]' 
+                          : 'bg-muted text-muted-foreground border border-border'
+                  }`} title={hasWallet ? 'Wallet Connected' : 'No Wallet'}>
+                    <Wallet className="h-3 w-3" />
                   </div>
 
                   {/* Content Wrapper */}
-                  <div className="flex-1 relative h-4 overflow-hidden">
+                  <div className="flex-1 relative h-5 overflow-hidden">
                       {/* Email (Default) */}
                       <div className={`absolute inset-0 flex items-center transition-transform duration-300 ease-in-out ${hasWallet && !walletLoading ? 'group-hover:-translate-y-full' : ''}`}>
-                          <span className="text-xs font-medium truncate w-full block max-w-[100px] sm:max-w-[140px]">
+                          <span className="text-xs sm:text-sm font-medium truncate w-full">
                               {userEmail}
                           </span>
                       </div>
@@ -87,27 +91,20 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                       {/* Wallet Address (Hover) */}
                       {hasWallet && !walletLoading && (
                           <div className="absolute inset-0 flex items-center translate-y-full transition-transform duration-300 ease-in-out group-hover:translate-y-0">
-                              <span className="text-xs font-mono text-[var(--foreground)]/80 truncate w-full block">
+                              <span className="text-xs sm:text-sm font-mono text-muted-foreground truncate w-full">
                                   {evmAddress?.slice(0, 6)}...{evmAddress?.slice(-4)}
                               </span>
                           </div>
                       )}
                   </div>
-
-                  {/* Wallet Indicator */}
-                  <div className={`h-2 w-2 rounded-[2px] shrink-0 transition-colors ${
-                      hasWallet && !walletLoading 
-                          ? 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]' 
-                          : 'bg-slate-400 dark:bg-slate-600'
-                  }`} title={hasWallet ? 'Wallet Connected' : 'No Wallet'} />
-
                 </div>
                 
+                {/* Disconnect Button */}
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={logout}
-                  className="h-8 w-8 rounded-full hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                  className="h-9 w-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
                   title="Disconnect"
                 >
                   <LogOut className="h-4 w-4" />
