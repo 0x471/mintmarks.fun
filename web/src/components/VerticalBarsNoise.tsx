@@ -38,17 +38,9 @@ export const VerticalBarsNoise: React.FC<VerticalBarsNoiseProps> = ({
 
     window.addEventListener('resize', resize);
 
-    // Get CSS variable color
-    const getBarColor = (opacity: number) => {
-      const isDark = document.documentElement.classList.contains('dark');
-      // Use CSS variables for colors
-      if (isDark) {
-        // Dark mode: Blue-ish vertical bars
-        return `rgba(30, 58, 138, ${opacity * 0.15})`;
-      } else {
-        // Light mode: Subtle gray/blue bars
-        return `rgba(240, 244, 249, ${opacity * 0.8})`;
-      }
+    // Helper to get CSS variable value
+    const getCssVar = (name: string) => {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     };
 
     const draw = () => {
@@ -59,33 +51,37 @@ export const VerticalBarsNoise: React.FC<VerticalBarsNoiseProps> = ({
 
       // Draw gradient background
       const gradient = ctx.createLinearGradient(0, 0, 0, height);
-      const isDark = document.documentElement.classList.contains('dark');
-      
-      if (isDark) {
-        gradient.addColorStop(0, '#0942DF'); // Dark blue start
-        gradient.addColorStop(0.5, '#0436E0'); // Dark blue mid
-        gradient.addColorStop(1, '#0942DF'); // Dark blue end
-      } else {
-        gradient.addColorStop(0, '#F0F4F9'); // Light gray/blue start
-        gradient.addColorStop(0.5, '#F7F9FC'); // Light gray/blue mid
-        gradient.addColorStop(1, '#F0F4F9'); // Light gray/blue end
-      }
-      
+
+      // Use CSS variables for gradient colors
+      gradient.addColorStop(0, getCssVar('--bg-animation-gradient-start'));
+      gradient.addColorStop(0.5, getCssVar('--bg-animation-gradient-mid'));
+      gradient.addColorStop(1, getCssVar('--bg-animation-gradient-end'));
+
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, height);
 
       // Draw vertical bars
       const numBars = Math.ceil(width / (barWidth + gap));
 
+      // Get base bar color from CSS variable (using the 'mid' one as base)
+      // Note: We need to handle opacity manually since canvas doesn't support CSS variable alpha modification easily
+      // So we'll rely on the variable being an rgba or hex string and apply globalAlpha or just use the variable as is if it has alpha
+      // But the original code modified opacity.
+      // Let's try to parse the color or just use globalAlpha.
+
+      const barColorBase = getCssVar('--bg-animation-bar-color-mid');
+
       for (let i = 0; i < numBars; i++) {
         const x = i * (barWidth + gap);
-        
+
         // Calculate bar opacity based on sine wave
-        // Different frequency for each bar to create variation
         const opacity = (Math.sin((time * 0.05) + (i * 0.5)) + 1) / 2;
-        
-        ctx.fillStyle = getBarColor(opacity);
+
+        ctx.save();
+        ctx.globalAlpha = opacity; // Apply opacity to the drawing context
+        ctx.fillStyle = barColorBase;
         ctx.fillRect(x, 0, barWidth, height);
+        ctx.restore();
       }
 
       // Add noise overlay

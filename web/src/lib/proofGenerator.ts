@@ -29,7 +29,7 @@ export interface ProofResult {
 }
 
 // Circuit JSON will be loaded dynamically
-let circuitJson: any = null;
+let circuitJson: object | null = null;
 
 async function loadCircuit() {
   if (circuitJson) return circuitJson;
@@ -51,7 +51,7 @@ async function loadCircuit() {
   }
 
   circuitJson = await response.json();
-  return circuitJson;
+  return circuitJson as object;
 }
 
 // Validate EML file format
@@ -129,7 +129,7 @@ async function generateCircuitInputs(emailContent: Buffer | Uint8Array) {
   const eventNameSequence = getEventNameSequence(headers, subjectValueSequence);
 
   // Remove extractTo-related fields that we don't use
-  const { to_header_sequence, to_address_sequence, ...relevantInputs } = baseInputs as any;
+  const { to_header_sequence, to_address_sequence, ...relevantInputs } = baseInputs as Record<string, unknown>;
 
   return {
     ...relevantInputs,
@@ -203,7 +203,7 @@ export class ProofGenerator {
       const { ZKEmailProver } = await import('@zk-email/zkemail-nr/dist/prover.js');
 
       onProgress?.('Initializing prover...');
-      const prover = new ZKEmailProver(circuit, 'honk', 1);
+      const prover = new ZKEmailProver(circuit as any, 'honk', 1);
 
       try {
         // Generate proof
@@ -252,10 +252,10 @@ export class ProofGenerator {
       } finally {
         await prover.destroy();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: error.message || 'Unknown error occurred',
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
   }

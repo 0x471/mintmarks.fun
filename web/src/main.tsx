@@ -21,19 +21,19 @@ if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
 // Detect MetaMask or other wallet extensions
 const detectExternalWallet = (): boolean => {
   if (typeof window === 'undefined') return false;
-  
+
   const ethereum = (window as any).ethereum;
   if (!ethereum) return false;
-  
+
   // Check if MetaMask is installed
   const isMetaMask = ethereum.isMetaMask === true;
-  
+
   // Check if Coinbase Wallet is installed
   const isCoinbaseWallet = ethereum.isCoinbaseWallet === true;
-  
+
   // Check if other common wallets are installed
   const hasOtherWallet = ethereum.providers && Array.isArray(ethereum.providers) && ethereum.providers.length > 0;
-  
+
   return isMetaMask || isCoinbaseWallet || hasOtherWallet;
 };
 
@@ -89,10 +89,10 @@ const CDPProviderWrapper = ({ children }: { children: React.ReactNode }) => {
   // Suppress MetaMask override errors in console
   const originalError = console.error;
   const originalWarn = console.warn;
-  
+
   useEffect(() => {
     // Filter out MetaMask override warnings (they're harmless)
-    console.error = (...args: any[]) => {
+    console.error = (...args: unknown[]) => {
       const message = args[0]?.toString() || '';
       if (
         message.includes('Cannot set property ethereum') ||
@@ -104,11 +104,11 @@ const CDPProviderWrapper = ({ children }: { children: React.ReactNode }) => {
       }
       originalError.apply(console, args);
     };
-    
-    console.warn = (...args: any[]) => {
+
+    console.warn = (...args: unknown[]) => {
       const message = args[0]?.toString() || '';
       if (
-        message.includes('MetaMask') && 
+        message.includes('MetaMask') &&
         message.includes('ethereum')
       ) {
         // Silently ignore MetaMask warnings
@@ -116,13 +116,13 @@ const CDPProviderWrapper = ({ children }: { children: React.ReactNode }) => {
       }
       originalWarn.apply(console, args);
     };
-    
+
     return () => {
       console.error = originalError;
       console.warn = originalWarn;
     };
   }, []);
-  
+
   return <>{children}</>;
 };
 

@@ -3,11 +3,11 @@ export interface ProofValidationResult {
   error?: string
 }
 
-export function validateProof(proof: any): ProofValidationResult {
+export function validateProof(proof: { publicSignals?: unknown; proof?: unknown } | null | undefined): ProofValidationResult {
   if (!proof) {
     return { isValid: false, error: 'Proof is missing' }
   }
-  
+
   // Basic structure validation
   if (!proof.publicSignals || !proof.proof) {
     return { isValid: false, error: 'Invalid proof structure' }
@@ -15,7 +15,7 @@ export function validateProof(proof: any): ProofValidationResult {
 
   // TODO: Add actual ZK proof verification logic here
   // This would typically involve verifying the proof against the verification key
-  
+
   return { isValid: true }
 }
 

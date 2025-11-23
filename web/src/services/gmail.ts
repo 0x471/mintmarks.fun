@@ -126,9 +126,18 @@ export async function searchEmails(
     for (let i = 0; i < data.messages.length; i += batchSize) {
       const batch = data.messages.slice(i, i + batchSize)
       const batchResults = await Promise.all(
-        batch.map(msg => getEmailMetadata(accessToken, msg.id))
+        batch.map(async (msg) => {
+          try {
+            return await getEmailMetadata(accessToken, msg.id)
+          } catch (error) {
+            console.warn(`Failed to fetch metadata for message ${msg.id}:`, error)
+            return null
+          }
+        })
       )
-      emailDetails.push(...batchResults)
+
+      const validResults = batchResults.filter((msg): msg is GmailMessageDetail => msg !== null)
+      emailDetails.push(...validResults)
 
       // Delay between batches
       if (i + batchSize < data.messages.length) {
@@ -173,7 +182,7 @@ export async function getEmailRaw(accessToken: string, messageId: string): Promi
 
     // Base64url decode - handle Chrome-specific encoding issues
     const base64 = data.raw.replace(/-/g, '+').replace(/_/g, '/')
-    
+
     // Use try-catch for better error handling in Chrome
     let decodedEmail: string;
     try {
@@ -184,12 +193,12 @@ export async function getEmailRaw(accessToken: string, messageId: string): Promi
       const paddedBase64 = base64 + '='.repeat((4 - base64.length % 4) % 4);
       decodedEmail = atob(paddedBase64);
     }
-    
+
     // Ensure we have proper line endings (Chrome might handle this differently)
     if (!decodedEmail.includes('\r\n') && decodedEmail.includes('\n')) {
       decodedEmail = decodedEmail.replace(/\n/g, '\r\n');
     }
-    
+
     return decodedEmail;
   } catch (error) {
     if (error instanceof TokenExpiredError) {
@@ -205,13 +214,13 @@ export async function searchLumaEmails(
   pageToken?: string,
   pageSize: number = 30
 ): Promise<EmailSearchResult> {
-  
+
   // Build the query dynamically from the config
   const allDomains = Object.values(emailFilterConfig).flatMap(config => config.apiQuery.domains);
   const allKeywords = Object.values(emailFilterConfig).flatMap(config => config.apiQuery.keywords);
   const uniqueDomains = [...new Set(allDomains)];
   const uniqueKeywords = [...new Set(allKeywords)];
-  
+
   const query = `from:(${uniqueDomains.join(' OR ')}) (${uniqueKeywords.join(' OR ')})`;
 
   const searchResult = await searchEmails(accessToken, query, pageToken, pageSize)

@@ -20,10 +20,10 @@ import { useAuth } from '../contexts/AuthContext'
  * 1. Otomatik: Kullanıcı login olduğunda otomatik wallet oluştur
  * 2. Manuel: Kullanıcı butona tıklayınca wallet oluştur
  */
-export function WalletCreationPrompt({ 
-  autoCreate = false 
-}: { 
-  autoCreate?: boolean 
+export function WalletCreationPrompt({
+  autoCreate = false
+}: {
+  autoCreate?: boolean
 }) {
   // ✅ Best Practice: SDK initialize kontrolü
   const { isInitialized } = useIsInitialized()
@@ -100,30 +100,13 @@ export function WalletCreationPrompt({
   // ✅ Best Practice: SDK initialize olana kadar render etme
   if (!isInitialized) {
     return (
-      <div style={{
-        padding: '1.5rem',
-        backgroundColor: '#f3f4f6',
-        borderRadius: '8px',
-        border: '1px solid #e5e7eb',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{
-            width: '20px',
-            height: '20px',
-            border: '2px solid #3b82f6',
-            borderTopColor: 'transparent',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-          }} />
-          <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+      <div className="p-6 bg-muted rounded-lg border border-border">
+        <div className="flex items-center gap-3">
+          <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-muted-foreground">
             Initializing wallet system...
           </p>
         </div>
-        <style>{`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
       </div>
     )
   }
@@ -131,7 +114,7 @@ export function WalletCreationPrompt({
   // ✅ Best Practice: Authentication flow başlatmadan önce kontrol et
   useEffect(() => {
     if (!isInitialized) return
-    
+
     // ✅ Best Practice: getCurrentUser ile double-check
     getCurrentUser().then((user) => {
       if (user) {
@@ -139,7 +122,7 @@ export function WalletCreationPrompt({
         console.log('User already authenticated, wallet should be available')
         return
       }
-      
+
       // Otomatik wallet oluşturma
       if (autoCreate && accessToken && !isSignedIn && !evmAddress) {
         // Gmail'den email adresini al (eğer mümkünse)
@@ -154,24 +137,14 @@ export function WalletCreationPrompt({
   // Eğer wallet zaten varsa, component'i gösterme
   if (isSignedIn && evmAddress) {
     return (
-      <div style={{
-        padding: '1.5rem',
-        backgroundColor: '#f0fdf4',
-        borderRadius: '8px',
-        border: '2px solid #10b981',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{
-            width: '20px',
-            height: '20px',
-            borderRadius: '50%',
-            backgroundColor: '#10b981',
-          }} />
+      <div className="p-6 bg-green-50 dark:bg-green-900/20 rounded-lg border-2 border-green-500">
+        <div className="flex items-center gap-3">
+          <div className="w-5 h-5 rounded-full bg-green-500" />
           <div>
-            <h3 style={{ fontWeight: '600', color: '#065f46', marginBottom: '0.25rem' }}>
+            <h3 className="font-semibold text-green-800 dark:text-green-400 mb-1">
               Wallet Connected
             </h3>
-            <p style={{ fontSize: '0.875rem', color: '#047857' }}>
+            <p className="text-sm text-green-700 dark:text-green-300">
               Your wallet address: {evmAddress.slice(0, 6)}...{evmAddress.slice(-4)}
             </p>
           </div>
@@ -183,61 +156,36 @@ export function WalletCreationPrompt({
   // Email girişi adımı
   if (step === 'email') {
     return (
-      <div style={{
-        padding: '1.5rem',
-        backgroundColor: '#ffffff',
-        borderRadius: '8px',
-        border: '1px solid #e5e7eb',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-      }}>
-        <div style={{ marginBottom: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '1.5rem' }}>👛</span>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: '600' }}>Create Your Wallet</h3>
+      <div className="p-6 bg-card rounded-lg border border-border shadow-sm">
+        <div className="mb-4">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-2xl">👛</span>
+            <h3 className="text-lg font-semibold">Create Your Wallet</h3>
           </div>
-          
+
           {!userEmail ? (
-            <p style={{ fontSize: '0.875rem', color: '#991b1b', marginBottom: '1rem' }}>
+            <p className="text-sm text-destructive mb-4">
               Please sign in with Google to create your wallet.
             </p>
           ) : (
             <>
-              <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
+              <p className="text-sm text-muted-foreground mb-4">
                 We'll send a verification code to <strong>{userEmail}</strong> to create your embedded wallet.
               </p>
 
               {error && (
-                <div style={{
-                  padding: '0.75rem',
-                  backgroundColor: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  borderRadius: '6px',
-                  marginBottom: '1rem',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '1rem' }}>⚠️</span>
-                    <p style={{ fontSize: '0.875rem', color: '#991b1b' }}>{error}</p>
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">⚠️</span>
+                    <p className="text-sm text-destructive">{error}</p>
                   </div>
                 </div>
               )}
 
               {emailLoading ? (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.75rem',
-                  padding: '1rem',
-                }}>
-                  <div style={{
-                    width: '20px',
-                    height: '20px',
-                    border: '2px solid #3b82f6',
-                    borderTopColor: 'transparent',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                  }} />
-                  <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                <div className="flex items-center justify-center gap-3 p-4">
+                  <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm text-muted-foreground">
                     Sending verification code to {userEmail}...
                   </span>
                 </div>
@@ -245,27 +193,7 @@ export function WalletCreationPrompt({
                 <button
                   onClick={handleAutoStart}
                   disabled={emailLoading || !userEmail}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    backgroundColor: emailLoading ? '#9ca3af' : '#3b82f6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    cursor: emailLoading ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!emailLoading) e.currentTarget.style.backgroundColor = '#2563eb'
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!emailLoading) e.currentTarget.style.backgroundColor = '#3b82f6'
-                  }}
+                  className="w-full p-3 bg-primary text-primary-foreground rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
                 >
                   <span>📧</span>
                   Send Verification Code to {userEmail}
@@ -281,35 +209,23 @@ export function WalletCreationPrompt({
   // OTP doğrulama adımı
   if (step === 'otp') {
     return (
-      <div style={{
-        padding: '1.5rem',
-        backgroundColor: '#ffffff',
-        borderRadius: '8px',
-        border: '1px solid #e5e7eb',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-      }}>
-        <div style={{ marginBottom: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '1.5rem' }}>📧</span>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: '600' }}>Verify Your Email</h3>
+      <div className="p-6 bg-card rounded-lg border border-border shadow-sm">
+        <div className="mb-4">
+          <div className="flex items-center gap-3 mb-2">
+            <span className="text-2xl">📧</span>
+            <h3 className="text-lg font-semibold">Verify Your Email</h3>
           </div>
-          
-          <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
+
+          <p className="text-sm text-muted-foreground mb-4">
             We've sent a verification code to <strong>{userEmail}</strong>.
             Please enter the code below to create your wallet.
           </p>
 
           {error && (
-            <div style={{
-              padding: '0.75rem',
-              backgroundColor: '#fef2f2',
-              border: '1px solid #fecaca',
-              borderRadius: '6px',
-              marginBottom: '1rem',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '1rem' }}>⚠️</span>
-                <p style={{ fontSize: '0.875rem', color: '#991b1b' }}>{error}</p>
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-base">⚠️</span>
+                <p className="text-sm text-destructive">{error}</p>
               </div>
             </div>
           )}
@@ -317,13 +233,13 @@ export function WalletCreationPrompt({
           <form
             onSubmit={async (e) => {
               e.preventDefault()
-              
+
               // ✅ Best Practice: Form validation
               if (!flowId) {
                 setError('Authentication flow not found. Please start over.')
                 return
               }
-              
+
               if (!otp || otp.length !== 6) {
                 setError('Please enter a valid 6-digit verification code.')
                 return
@@ -372,10 +288,10 @@ export function WalletCreationPrompt({
                 setOtpLoading(false)
               }
             }}
-            style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+            className="flex flex-col gap-4"
           >
             <div>
-              <label htmlFor="otp" style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
+              <label htmlFor="otp" className="block text-sm font-medium mb-2">
                 Verification Code
               </label>
               <input
@@ -387,19 +303,10 @@ export function WalletCreationPrompt({
                 maxLength={6}
                 required
                 disabled={otpLoading}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  textAlign: 'center',
-                  fontSize: '1.5rem',
-                  letterSpacing: '0.5rem',
-                  fontFamily: 'monospace',
-                }}
+                className="w-full p-3 border border-input rounded-md text-center text-2xl tracking-[0.5em] font-mono bg-background"
               />
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => {
@@ -408,49 +315,18 @@ export function WalletCreationPrompt({
                   setFlowId(null)
                 }}
                 disabled={otpLoading}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem',
-                  backgroundColor: '#f3f4f6',
-                  color: '#374151',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '0.875rem',
-                  fontWeight: '500',
-                  cursor: otpLoading ? 'not-allowed' : 'pointer',
-                }}
+                className="flex-1 p-3 bg-muted text-muted-foreground border border-input rounded-md text-sm font-medium hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Back
               </button>
-              <button 
-                type="submit" 
-                disabled={otpLoading || otp.length !== 6} 
-                style={{
-                  flex: 1,
-                  padding: '0.75rem',
-                  backgroundColor: otpLoading || otp.length !== 6 ? '#9ca3af' : '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
-                  cursor: otpLoading || otp.length !== 6 ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                }}
+              <button
+                type="submit"
+                disabled={otpLoading || otp.length !== 6}
+                className="flex-1 p-3 bg-primary text-primary-foreground rounded-md text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
               >
                 {otpLoading ? (
                   <>
-                    <div style={{
-                      width: '16px',
-                      height: '16px',
-                      border: '2px solid white',
-                      borderTopColor: 'transparent',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite',
-                    }} />
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     Verifying...
                   </>
                 ) : (
@@ -460,52 +336,32 @@ export function WalletCreationPrompt({
             </div>
           </form>
         </div>
-        <style>{`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
       </div>
     )
   }
 
   // Başarı adımı
   return (
-    <div style={{
-      padding: '1.5rem',
-      backgroundColor: '#f0fdf4',
-      borderRadius: '8px',
-      border: '2px solid #10b981',
-    }}>
-      <div style={{ marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-          <span style={{ fontSize: '1.5rem' }}>✅</span>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#065f46' }}>
+    <div className="p-6 bg-green-50 dark:bg-green-900/20 rounded-lg border-2 border-green-500">
+      <div className="mb-4">
+        <div className="flex items-center gap-3 mb-2">
+          <span className="text-2xl">✅</span>
+          <h3 className="text-lg font-semibold text-green-800 dark:text-green-400">
             Wallet Created Successfully!
           </h3>
         </div>
-        
+
         {evmAddress && (
-          <div style={{
-            padding: '1rem',
-            backgroundColor: 'white',
-            borderRadius: '6px',
-            marginBottom: '1rem',
-          }}>
-            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+          <div className="p-4 bg-white dark:bg-black/20 rounded-md mb-4">
+            <p className="text-sm text-muted-foreground mb-2">
               Your Wallet Address:
             </p>
-            <code style={{ 
-              fontSize: '0.875rem', 
-              fontFamily: 'monospace',
-              wordBreak: 'break-all',
-              color: '#374151',
-            }}>
+            <code className="text-sm font-mono break-all text-foreground">
               {evmAddress}
             </code>
           </div>
         )}
-        <p style={{ fontSize: '0.875rem', color: '#047857' }}>
+        <p className="text-sm text-green-700 dark:text-green-300">
           Your embedded wallet has been created and is ready to use!
         </p>
       </div>

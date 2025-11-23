@@ -69,54 +69,58 @@ export function EmailList({ onEmailSelect }: { onEmailSelect: (emailId: string) 
 
   if (!isAuthenticated) {
     return (
-      <div style={{ textAlign: 'center', padding: '2rem' }}>
-        <p>Please sign in with Google to view your emails.</p>
-        <button onClick={login}>Sign in with Google</button>
+      <div className="text-center p-8">
+        <p className="mb-4">Please sign in with Google to view your emails.</p>
+        <button onClick={login} className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+          Sign in with Google
+        </button>
       </div>
     )
   }
 
   if (loading) {
-    return <div style={{ textAlign: 'center', padding: '2rem' }}>Loading emails...</div>
+    return <div className="text-center p-8 text-muted-foreground">Loading emails...</div>
   }
 
   if (error) {
     return (
-      <div style={{ textAlign: 'center', padding: '2rem', color: '#dc2626' }}>
-        <p>{error}</p>
-        <button onClick={loadEmails}>Retry</button>
+      <div className="text-center p-8 text-destructive">
+        <p className="mb-4">{error}</p>
+        <button onClick={loadEmails} className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors">
+          Retry
+        </button>
       </div>
     )
   }
 
   return (
     <div>
-      <h2>Your Emails ({emails.length})</h2>
-      <div>
+      <h2 className="text-xl font-semibold mb-4">Your Emails ({emails.length})</h2>
+      <div className="space-y-4">
         {emails.map(email => (
           <div
             key={email.id}
-            style={{
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              padding: '1rem',
-              marginBottom: '1rem',
-              cursor: 'pointer',
-            }}
+            className="border border-border rounded-lg p-4 cursor-pointer hover:bg-muted/50 transition-colors"
             onClick={() => onEmailSelect(email.id)}
           >
-            <h3>{email.subject}</h3>
-            <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            <h3 className="font-medium mb-1">{email.subject}</h3>
+            <p className="text-sm text-muted-foreground mb-2">
               From: {email.from} | Date: {email.date}
             </p>
-            <p style={{ fontSize: '0.875rem', color: '#9ca3af' }}>{email.snippet}</p>
+            <p className="text-sm text-muted-foreground/80 line-clamp-2">{email.snippet}</p>
           </div>
         ))}
       </div>
       {hasMore && (
-        <button onClick={loadMore} disabled={loadingMore}>
-          {loadingMore ? 'Loading...' : 'Load More'}
-        </button>
+        <div className="mt-4 text-center">
+          <button
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loadingMore ? 'Loading...' : 'Load More'}
+          </button>
+        </div>
       )}
     </div>
   )
