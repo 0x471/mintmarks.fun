@@ -177,7 +177,6 @@ export default function CreateMark() {
   const [unifiedStep, setUnifiedStep] = useState<UnifiedMintStep | null>(null)
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [isUnifiedFlow, setIsUnifiedFlow] = useState(false)
-  const [walletType, setWalletType] = useState<'cdp' | 'external' | null>(null) // Track wallet type
   
   // Check for external wallet (MetaMask)
   const hasExternalWallet = typeof window !== 'undefined' && !!(window as any).ethereum && !(window as any).ethereum.isCoinbaseWallet
