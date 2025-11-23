@@ -25,23 +25,27 @@ interface DropdownMenuTriggerProps {
 export function DropdownMenu({ children }: DropdownMenuProps) {
   const [isOpen, setIsOpen] = React.useState(false)
   
+  let trigger: React.ReactNode = null
+  let content: React.ReactNode = null
+  
+  React.Children.forEach(children, (child) => {
+    if (React.isValidElement(child)) {
+      if (child.type === DropdownMenuTrigger) {
+        trigger = React.cloneElement(child as React.ReactElement<any>, {
+          onClick: () => setIsOpen(!isOpen)
+        })
+      } else if (child.type === DropdownMenuContent) {
+        content = isOpen ? React.cloneElement(child as React.ReactElement<any>, {
+          onClose: () => setIsOpen(false)
+        }) : null
+      }
+    }
+  })
+  
   return (
     <div className="relative inline-block">
-      {React.Children.map(children, child => {
-        if (React.isValidElement(child)) {
-          if (child.type === DropdownMenuTrigger) {
-            return React.cloneElement(child as React.ReactElement<any>, { 
-              onClick: () => setIsOpen(!isOpen)
-            })
-          }
-          if (child.type === DropdownMenuContent) {
-            return isOpen ? React.cloneElement(child as React.ReactElement<any>, { 
-              onClose: () => setIsOpen(false)
-            }) : null
-          }
-        }
-        return child
-      })}
+      {trigger}
+      {content}
     </div>
   )
 }

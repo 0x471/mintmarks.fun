@@ -26,7 +26,6 @@ export function NetworkSelector({
   // Support both controlled (via props) and uncontrolled (via context) mode
   const selectedNetwork = propSelectedNetwork || contextNetwork;
   const handleNetworkChange = onNetworkChange || contextSetNetwork;
-  const currentNetwork = NETWORKS[selectedNetwork];
 
   // All variants now use native select for reliability
 

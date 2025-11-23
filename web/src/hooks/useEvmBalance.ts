@@ -13,8 +13,12 @@ interface EvmBalanceHook {
  * Custom hook for tracking EVM wallet balance
  * Uses native RPC calls to get balance since CDP doesn't provide balance hooks for EOA
  */
-export function useEvmBalance(network: SupportedNetwork = 'celo-sepolia'): EvmBalanceHook {
-  const { evmAddress } = useEvmAddress()
+export function useEvmBalance(
+  externalAddress?: string,
+  network: SupportedNetwork = 'base-sepolia'
+): EvmBalanceHook {
+  const { evmAddress: hookAddress } = useEvmAddress()
+  const evmAddress = externalAddress || hookAddress
   const [balance, setBalance] = useState<number>(0)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)

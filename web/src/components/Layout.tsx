@@ -17,7 +17,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const location = useLocation();
   const { isAuthenticated, login, logout, userEmail } = useAuth();
   const { selectedNetwork, setNetwork } = useNetwork();
-  const { hasWallet, evmAddress, isLoading: walletLoading, balance: celoBalance, isLoadingBalance, connectionTimeout } = useWalletStatus();
+  const { hasWallet, evmAddress, isLoading: walletLoading, balance: celoBalance, isLoadingBalance } = useWalletStatus();
   const { showToast } = useToast();
   const [copied, setCopied] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
@@ -186,7 +186,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                       </>
                     ) : (
                       <span className="text-xs font-medium truncate" style={{ color: 'var(--page-text-secondary)' }}>
-                        {connectionTimeout ? 'No Wallet' : walletLoading ? 'Connecting...' : 'No Wallet'}
+                        {walletLoading ? 'Connecting...' : 'Sign in Wallet'}
                       </span>
                     )}
                   </div>
