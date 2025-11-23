@@ -1156,10 +1156,10 @@ export default function CreateMark() {
 
                     {/* Unified Mint Flow Modal - Non-dismissible */}
                     {isUnifiedFlow && unifiedStep && selectedEmail && (
-                      <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-6 sm:px-6 animate-in fade-in duration-300">
+                      <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-6 sm:px-6 animate-in fade-in duration-300">
                         {/* Glassmorphic Backdrop */}
                         <div
-                          className="fixed inset-0 backdrop-blur-md z-[100]"
+                          className="fixed inset-0 backdrop-blur-md"
                           style={{
                             background: 'rgba(0, 0, 0, 0.4)',
                             backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
@@ -1168,7 +1168,7 @@ export default function CreateMark() {
                         />
 
                         <div 
-                          className="relative z-[110] w-full max-w-3xl max-h-[85vh] overflow-hidden animate-in zoom-in-95 duration-300 card-glass"
+                          className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300 card-glass"
                           style={{
                             borderRadius: 'var(--figma-card-radius)',
                             background: 'var(--glass-bg-primary)',
@@ -1179,163 +1179,124 @@ export default function CreateMark() {
                           }}
                         >
                           {/* Close Button */}
-                          <div className="absolute top-3 right-3 z-[120]">
+                          <div className="absolute top-3 right-3 z-50">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 rounded-lg border transition-colors hover:bg-muted/20"
+                              className="h-8 w-8 rounded-full transition-colors hover:bg-white/10"
                               onClick={handleCloseUnifiedFlow}
-                              style={{
-                                backgroundColor: 'var(--glass-bg-secondary)',
-                                borderColor: 'var(--glass-border)',
-                                color: 'var(--page-text-muted)'
-                              }}
+                              style={{ color: 'var(--page-text-muted)' }}
                             >
                               <X className="h-4 w-4" />
                             </Button>
                           </div>
 
-                          {/* Modal Content - Split Layout */}
-                          <div className="flex flex-col md:flex-row h-full md:h-[450px]">
-                            
-                            {/* Left Side: Preview & Info */}
-                            <div className="w-full md:w-[40%] p-4 sm:p-5 flex flex-col justify-center items-center border-b md:border-b-0 md:border-r border-white/10 dark:border-white/10">
-                              {/* POAP Preview with Glow Effect */}
-                              <div className="relative group mb-3">
-                                <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                                {selectedEmail && (
-                                  <div className="relative transform transition-transform duration-500 hover:scale-105">
-                                    <POAPBadge
-                                      email={selectedEmail}
-                                      size="md"
-                                      showVerified={true}
-                                      status={unifiedStep === 'mint-complete' ? 'verified' : 'verified'}
-                                      className="shadow-2xl shadow-black/10"
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                              
-                              {/* Info Text */}
-                              <div className="text-center space-y-1.5 max-w-xs mx-auto">
-                                <h3 className="text-lg font-bold tracking-tight" style={{ color: 'var(--page-text-primary)' }}>
-                                  Mint Your Mintmark
-                                </h3>
-                                <p className="text-[10px] leading-relaxed" style={{ color: 'var(--page-text-secondary)' }}>
-                                  Transform your commitment into a verifiable on-chain proof on Celo.
-                                </p>
-                                
-                                {/* Security Badges */}
-                                <div className="flex items-center justify-center gap-2 pt-1">
-                                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full border" style={{ 
-                                    backgroundColor: 'var(--glass-bg-tertiary)',
-                                    borderColor: 'var(--glass-border)'
-                                  }}>
-                                    <Shield className="w-2.5 h-2.5" style={{ color: 'var(--page-text-primary)' }} />
-                                    <span className="text-[9px] font-medium" style={{ color: 'var(--page-text-primary)' }}>ZK-Verified</span>
-                                  </div>
-                                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full border" style={{ 
-                                    backgroundColor: 'var(--glass-bg-tertiary)',
-                                    borderColor: 'var(--glass-border)'
-                                  }}>
-                                    <Lock className="w-2.5 h-2.5" style={{ color: 'var(--page-text-primary)' }} />
-                                    <span className="text-[9px] font-medium" style={{ color: 'var(--page-text-primary)' }}>Private</span>
+                          <div className="relative overflow-y-auto max-h-[90vh] p-6">
+                            {unifiedStep === 'mint-complete' ? (
+                              /* Success State */
+                              <div className="text-center space-y-6 py-4">
+                                {/* Success Animation */}
+                                <div className="flex justify-center">
+                                  <div className="relative">
+                                    <div className="absolute inset-0 bg-green-500/30 rounded-full blur-2xl animate-pulse"></div>
+                                    <CheckCircle2 className="h-16 w-16 text-green-500 relative z-10" />
                                   </div>
                                 </div>
+                                
+                                <div className="space-y-2">
+                                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--page-text-primary)' }}>
+                                    Mint Successful!
+                                  </h2>
+                                  <p className="text-sm text-muted-foreground max-w-xs mx-auto" style={{ color: 'var(--page-text-secondary)' }}>
+                                    Your commitment has been permanently recorded on Celo.
+                                  </p>
+                                </div>
+                                
+                                {/* POAP Badge - Final */}
+                                <div className="flex justify-center pt-2">
+                                  <POAPBadge email={selectedEmail} size="md" showVerified={true} />
+                                </div>
+                                
+                                {/* Action */}
+                                <div className="pt-4 space-y-3">
+                                  <Button
+                                    onClick={() => navigate('/marks')}
+                                    variant="outline"
+                                    className="w-full h-11 gap-2"
+                                  >
+                                    View My Marks
+                                    <ArrowRight className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    onClick={handleShareOnX}
+                                    className="w-full h-11 gap-2"
+                                    style={{
+                                      backgroundColor: 'var(--figma-cta1-bg)',
+                                      borderColor: 'var(--figma-cta1-border)',
+                                      color: 'var(--figma-cta1-text)'
+                                    }}
+                                  >
+                                    Share on X
+                                  </Button>
+                                </div>
                               </div>
-                            </div>
-
-                            {/* Right Side: Progress & Actions */}
-                            <div className="w-full md:w-[60%] flex flex-col" style={{ background: 'var(--glass-bg-secondary)' }}>
-                              <div className="flex-1 overflow-y-auto p-4 sm:p-5 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
-                                {unifiedStep === 'mint-complete' ? (
-                                  /* Success State */
-                                  <div className="flex flex-col items-center justify-center h-full space-y-6 text-center">
-                                    {/* Success Animation */}
-                                    <div className="relative mb-4">
-                                      <div className="absolute inset-0 bg-green-500/30 rounded-full blur-2xl animate-pulse"></div>
-                                      <div className="p-4 rounded-full ring-1 relative z-10" style={{ 
-                                        backgroundColor: 'var(--glass-bg-tertiary)',
-                                        borderColor: 'var(--glass-border)'
-                                      }}>
-                                        <CheckCircle2 className="h-12 w-12 text-green-500" />
+                            ) : (
+                              /* Progress State */
+                              <div className="space-y-6">
+                                {/* Header with POAP & Info */}
+                                <div className="flex items-center gap-4 p-4 rounded-xl border" style={{ 
+                                  backgroundColor: 'var(--glass-bg-tertiary)',
+                                  borderColor: 'var(--glass-border)'
+                                }}>
+                                  <div className="flex-shrink-0">
+                                    <POAPBadge email={selectedEmail} size="sm" showVerified={true} className="shadow-md" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <h3 className="font-bold text-base truncate" style={{ color: 'var(--page-text-primary)' }}>
+                                      Mint Your Mintmark
+                                    </h3>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20">
+                                        Celo Network
+                                      </span>
+                                      <div className="flex items-center gap-1">
+                                        <Shield className="w-3 h-3 text-green-500" />
+                                        <span className="text-[10px] text-muted-foreground">ZK-Verified</span>
                                       </div>
                                     </div>
-                                    
-                                    <div className="space-y-2">
-                                      <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--page-text-primary)' }}>
-                                        Mint Successful!
-                                      </h2>
-                                      <p className="text-sm max-w-xs mx-auto" style={{ color: 'var(--page-text-secondary)' }}>
-                                        Your commitment has been permanently recorded on Celo network.
-                                      </p>
-                                    </div>
-                                    
-                                    {/* Action Buttons */}
-                                    <div className="pt-4 w-full max-w-xs space-y-3">
-                                      <Button
-                                        onClick={() => navigate('/marks')}
-                                        variant="outline"
-                                        className="w-full h-11 gap-2"
-                                      >
-                                        View My Marks
-                                        <ArrowRight className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        onClick={handleShareOnX}
-                                        className="w-full h-11 gap-2"
-                                        style={{
-                                          backgroundColor: 'var(--figma-cta1-bg)',
-                                          borderColor: 'var(--figma-cta1-border)',
-                                          color: 'var(--figma-cta1-text)'
-                                        }}
-                                      >
-                                        <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">
-                                          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                                        </svg>
-                                        Share on X
-                                      </Button>
-                                    </div>
                                   </div>
-                                ) : (
-                                  /* Progress State */
-                                  <UnifiedMintProgress
-                                    currentStep={unifiedStep}
-                                    onConnectCDPWallet={handleConnectCDPWallet}
-                                    onConnectExternalWallet={hasExternalWallet ? handleConnectExternalWallet : undefined}
-                                    onVerifySelfID={handleVerifySelfID}
-                                    onSignMessage={handleSignMessage}
-                                    onPayFee={handlePayFee}
-                                    onChangeWallet={() => {
-                                      // Reset wallet state to allow user to connect different wallet
-                                      setWalletAddress(null)
-                                      setShowOtpInput(false)
-                                      setOtpCode('')
-                                      setFlowId(null)
-                                      setUnifiedStep('wallet-prompt')
-                                    }}
-                                    onClose={() => {
-                                      // Close modal
-                                      setIsUnifiedFlow(false)
-                                      setUnifiedStep(null)
-                                      setProofStatus('idle')
-                                      setProofLogs([])
-                                    }}
-                                    walletAddress={walletAddress || undefined}
-                                    error={error}
-                                    showOtpInput={showOtpInput}
-                                    otpEmail={userEmail || ''}
-                                    otpCode={otpCode}
-                                    onOtpCodeChange={(code) => setOtpCode(code)}
-                                    isSendingOtp={isSendingOtp}
-                                    isVerifyingOtp={isVerifyingOtp}
-                                    hasExternalWallet={hasExternalWallet}
-                                    proofLogs={proofLogs}
-                                    proofStatus={proofStatus}
-                                  />
-                                )}
+                                </div>
+
+                                {/* Unified Progress Component */}
+                                <UnifiedMintProgress
+                                  currentStep={unifiedStep}
+                                  onConnectCDPWallet={handleConnectCDPWallet}
+                                  onConnectExternalWallet={hasExternalWallet ? handleConnectExternalWallet : undefined}
+                                  onVerifySelfID={handleVerifySelfID}
+                                  onSignMessage={handleSignMessage}
+                                  onPayFee={handlePayFee}
+                                  onChangeWallet={() => {
+                                    setWalletAddress(null)
+                                    setShowOtpInput(false)
+                                    setOtpCode('')
+                                    setFlowId(null)
+                                    setUnifiedStep('wallet-prompt')
+                                  }}
+                                  onClose={handleCloseUnifiedFlow}
+                                  walletAddress={walletAddress || undefined}
+                                  error={error}
+                                  showOtpInput={showOtpInput}
+                                  otpEmail={userEmail || ''}
+                                  otpCode={otpCode}
+                                  onOtpCodeChange={(code) => setOtpCode(code)}
+                                  isSendingOtp={isSendingOtp}
+                                  isVerifyingOtp={isVerifyingOtp}
+                                  hasExternalWallet={hasExternalWallet}
+                                  proofLogs={proofLogs}
+                                  proofStatus={proofStatus}
+                                />
                               </div>
-                            </div>
+                            )}
                           </div>
                         </div>
                       </div>
