@@ -132,6 +132,27 @@ export function WalletOperationsModal({
     }
   }
 
+  const validateSendInputs = (to: string, amountStr: string): string | null => {
+    if (!to || !amountStr) {
+      return 'Please fill in all fields'
+    }
+
+    if (!/^0x[a-fA-F0-9]{40}$/.test(to)) {
+      return 'Invalid address format'
+    }
+
+    const amount = parseFloat(amountStr)
+    if (isNaN(amount) || amount <= 0) {
+      return 'Invalid amount'
+    }
+
+    if (amount > displayBalance) {
+      return 'Insufficient balance'
+    }
+
+    return null
+  }
+
   const handleCeloTransaction = async (
     to: string,
     amountStr: string,
@@ -186,21 +207,8 @@ export function WalletOperationsModal({
 
     console.log('[Wallet] ✅ Celo Transaction broadcasted:', transactionHash)
 
-    // 3. Wait for confirmation (since SDK won't track this automatically)
-    // Start async monitoring
-    client.waitForTransactionReceipt({ hash: transactionHash })
-      .then((receipt) => {
-         if (receipt.status === 'success') {
-           showToast('Transaction confirmed on Celo!', 'success')
-           refetchBalance()
-         } else {
-           showToast('Transaction failed on chain', 'error')
-         }
-      })
-      .catch((err) => {
-        console.error('Error waiting for receipt:', err)
-      })
-
+    // Note: Transaction tracking is handled by useTransactionStatus hook
+    // which will monitor the transaction and update UI accordingly
     return { transactionHash }
   }
 
@@ -210,28 +218,13 @@ export function WalletOperationsModal({
       return
     }
 
-    if (!sendToAddress || !sendAmount) {
-      showToast('Please fill in all fields', 'error')
+    const validationError = validateSendInputs(sendToAddress, sendAmount)
+    if (validationError) {
+      showToast(validationError, 'error')
       return
     }
 
-    // Validate address format
-    if (!/^0x[a-fA-F0-9]{40}$/.test(sendToAddress)) {
-      showToast('Invalid address format', 'error')
-      return
-    }
-
-    // Validate amount
     const amount = parseFloat(sendAmount)
-    if (isNaN(amount) || amount <= 0) {
-      showToast('Invalid amount', 'error')
-      return
-    }
-
-    if (amount > displayBalance) {
-      showToast('Insufficient balance', 'error')
-      return
-    }
 
     try {
       setIsSending(true)
@@ -272,14 +265,12 @@ export function WalletOperationsModal({
       // Start tracking transaction status
       trackTransaction(result.transactionHash, selectedNetwork)
       
-      showToast('Transaction submitted! Tracking confirmation...', 'success')
-      
-      // Reset form
+      // Reset form and switch to receive tab to show transaction status
       setSendToAddress('')
       setSendAmount('')
-      
-      // Switch to receive tab to show transaction status
       setActiveTab('receive')
+      
+      showToast('Transaction submitted! Tracking confirmation...', 'success')
       
     } catch (err: unknown) {
       console.error('[Wallet] ❌ Failed to send EOA transaction:', err)
