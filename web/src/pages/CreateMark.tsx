@@ -1230,48 +1230,57 @@ export default function CreateMark() {
                             ) : (
                               /* Progress State */
                               <div className="space-y-6">
-                                {/* Header - Minimal Horizontal Row */}
-                                <div className="flex items-center gap-2.5">
-                                  <div className="flex items-center gap-2.5 text-xs px-3 py-2 rounded-xl border flex-1 backdrop-blur-sm transition-all hover:border-border/60" style={{ 
-                                    borderColor: 'var(--glass-border)',
-                                    backgroundColor: 'var(--glass-bg-tertiary)',
-                                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-                                  }}>
-                                    <span className="font-semibold text-foreground truncate flex-1 min-w-0" style={{ color: 'var(--page-text-primary)' }}>
-                                      {selectedEmail?.subject || 'Mint Your Mintmark'}
-                                    </span>
-                                    <div className="h-3 w-px bg-border/50 flex-shrink-0" />
-                                    <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground whitespace-nowrap flex-shrink-0" style={{ color: 'var(--page-text-secondary)' }}>
-                                      <span className="truncate max-w-[120px]">{selectedEmail?.from?.split('<')[0]?.trim() || 'Event'}</span>
-                                      <span className="text-border">•</span>
-                                      <span>{selectedEmail?.date ? new Date(selectedEmail.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Today'}</span>
-                                    </span>
-                                    <div className="h-3 w-px bg-border/50 flex-shrink-0" />
-                                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-primary/10 text-primary font-medium border border-primary/20 whitespace-nowrap flex-shrink-0 shadow-sm">
-                                      Celo
-                                    </span>
-                                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] font-medium whitespace-nowrap flex-shrink-0 shadow-sm" style={{ 
-                                      borderColor: 'var(--glass-border)', 
-                                      backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                                      color: 'var(--page-text-primary)' 
-                                    }}>
-                                      <Shield className="w-3 h-3 text-green-500 flex-shrink-0" />
-                                      <span>ZK</span>
-                                    </span>
-                                  </div>
+                                {/* Header - Two Row Compact Design */}
+                                <div className="relative px-2.5 py-2 rounded-xl border backdrop-blur-sm transition-all" style={{ 
+                                  borderColor: 'var(--glass-border)',
+                                  backgroundColor: 'var(--glass-bg-tertiary)',
+                                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                                }}>
+                                  {/* Close Button - Top Right */}
                                   <Button
                                     variant="ghost"
                                     size="icon"
                                     onClick={handleCloseUnifiedFlow}
-                                    className="h-7 w-7 rounded-lg border transition-all flex-shrink-0 hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive"
+                                    className="absolute top-1.5 right-1.5 h-6 w-6 rounded-md border transition-all hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive z-10"
                                     style={{
                                       borderColor: 'var(--glass-border)',
                                       color: 'var(--page-text-muted)',
                                       backgroundColor: 'var(--glass-bg-secondary)'
                                     }}
                                   >
-                                    <X className="h-4 w-4" />
+                                    <X className="h-3.5 w-3.5" />
                                   </Button>
+                                  
+                                  {/* Row 1: Subject */}
+                                  <div className="pr-8">
+                                    <h3 className="text-sm font-semibold truncate leading-tight" style={{ color: 'var(--page-text-primary)' }}>
+                                      {selectedEmail?.subject || 'Mint Your Mintmark'}
+                                    </h3>
+                                  </div>
+                                  
+                                  {/* Row 2: Meta Info & Badges */}
+                                  <div className="flex items-center gap-2 mt-1.5 pr-8">
+                                    <span className="text-[10px] text-muted-foreground truncate flex-shrink-0" style={{ color: 'var(--page-text-secondary)' }}>
+                                      {selectedEmail?.from?.split('<')[0]?.trim() || 'Event'}
+                                    </span>
+                                    <span className="text-[10px] text-border">•</span>
+                                    <span className="text-[10px] text-muted-foreground whitespace-nowrap flex-shrink-0" style={{ color: 'var(--page-text-secondary)' }}>
+                                      {selectedEmail?.date ? new Date(selectedEmail.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Today'}
+                                    </span>
+                                    <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-medium border border-primary/20 whitespace-nowrap">
+                                        Celo
+                                      </span>
+                                      <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md border text-[9px] font-medium whitespace-nowrap" style={{ 
+                                        borderColor: 'var(--glass-border)', 
+                                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                                        color: 'var(--page-text-primary)' 
+                                      }}>
+                                        <Shield className="w-2.5 h-2.5 text-green-500 flex-shrink-0" />
+                                        <span>ZK</span>
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
 
                                 {/* Unified Progress Component */}
