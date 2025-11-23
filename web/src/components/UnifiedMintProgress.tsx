@@ -208,8 +208,13 @@ export function UnifiedMintProgress({
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-full hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+          className="h-8 w-8 rounded-full transition-colors"
           onClick={onClose}
+          style={{
+            backgroundColor: 'var(--glass-bg-secondary)',
+            borderColor: 'var(--glass-border)',
+            color: 'var(--page-text-muted)'
+          }}
         >
           <X className="h-5 w-5" />
         </Button>
@@ -304,7 +309,12 @@ export function UnifiedMintProgress({
 
         {/* Current Step Card - Main Focus */}
         {currentStepDetails && currentPhaseGroup && (
-          <Card className="overflow-hidden rounded-2xl border border-border/40 backdrop-blur-xl bg-background/40 shadow-2xl shadow-black/5 transition-all duration-500">
+          <Card className="overflow-hidden transition-all duration-500 card-glass" style={{
+            borderRadius: 'var(--figma-card-radius)',
+            backgroundColor: 'var(--glass-bg-primary)',
+            borderColor: 'var(--glass-border)',
+            boxShadow: 'var(--glass-shadow)'
+          }}>
             <CardHeader className="pb-2 pt-4 px-4 sm:px-5">
                 <div className="flex items-center gap-3">
                   <div className={cn(
@@ -348,7 +358,13 @@ export function UnifiedMintProgress({
                               <Button
                                 onClick={onConnectCDPWallet}
                                 size="default"
-                                className="gap-2 w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md"
+                                className="gap-2 w-full h-11"
+                                style={{
+                                  backgroundColor: 'var(--figma-cta1-bg)',
+                                  borderColor: 'var(--figma-cta1-border)',
+                                  color: 'var(--figma-cta1-text)',
+                                  borderRadius: 'var(--figma-card-radius)'
+                                }}
                               >
                                 <Mail className="h-4 w-4" />
                                 <span className="font-medium">Connect with Email</span>
@@ -361,9 +377,15 @@ export function UnifiedMintProgress({
                                 onClick={onConnectExternalWallet}
                                 size="default"
                                 variant="outline"
-                                className="gap-2 w-full rounded-xl border-border/60 hover:bg-muted/50"
+                                className="gap-2 w-full h-11"
+                                style={{
+                                  backgroundColor: 'var(--figma-cta2-bg)',
+                                  borderColor: 'var(--figma-cta2-border)',
+                                  color: 'var(--figma-cta2-text)',
+                                  borderRadius: 'var(--figma-card-radius)'
+                                }}
                               >
-                                <Wallet className="h-4 w-4 text-orange-500" />
+                                <Wallet className="h-4 w-4" />
                                 <span className="font-medium">Connect with MetaMask</span>
                               </Button>
                             )}
@@ -385,7 +407,13 @@ export function UnifiedMintProgress({
                                   placeholder="123456"
                                   disabled={isVerifyingOtp}
                                   maxLength={6}
-                                  className="w-full h-12 px-4 rounded-xl border bg-background/50 border-border/50 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-center text-xl font-mono tracking-[0.5em] placeholder:tracking-normal"
+                                  className="w-full h-12 px-4 border transition-all outline-none text-center text-xl font-mono tracking-[0.5em] placeholder:tracking-normal"
+                                  style={{
+                                    backgroundColor: 'var(--glass-bg-secondary)',
+                                    borderColor: 'var(--glass-border)',
+                                    borderRadius: 'var(--figma-card-radius)',
+                                    color: 'var(--page-text-primary)'
+                                  }}
                                 />
                               </div>
                               {otpEmail && (
@@ -399,7 +427,13 @@ export function UnifiedMintProgress({
                                 onClick={onConnectCDPWallet}
                                 size="default"
                                 disabled={isSendingOtp || isVerifyingOtp || !otpCode || otpCode.length < 6}
-                                className="gap-2 w-full rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+                                className="gap-2 w-full h-11"
+                                style={{
+                                  backgroundColor: 'var(--figma-cta1-bg)',
+                                  borderColor: 'var(--figma-cta1-border)',
+                                  color: 'var(--figma-cta1-text)',
+                                  borderRadius: 'var(--figma-card-radius)'
+                                }}
                               >
                                 {isSendingOtp ? (
                                   <>
@@ -426,14 +460,24 @@ export function UnifiedMintProgress({
 
                     {currentStepDetails.key === 'self-id-prompt' && onVerifySelfID && (
                       <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 p-2.5 rounded-lg border border-border/30">
-                           <Fingerprint className="h-3.5 w-3.5 text-purple-500" />
+                        <div className="flex items-center gap-2 text-xs p-2.5 rounded-lg border" style={{ 
+                          backgroundColor: 'var(--glass-bg-tertiary)',
+                          borderColor: 'var(--glass-border)',
+                          color: 'var(--page-text-secondary)'
+                        }}>
+                           <Fingerprint className="h-3.5 w-3.5" style={{ color: 'var(--page-text-primary)' }} />
                            <span>Verify your identity using Self ID App.</span>
                         </div>
                         <Button
                           onClick={onVerifySelfID}
                           size="default"
-                          className="gap-2 w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-md"
+                          className="gap-2 w-full h-11"
+                          style={{
+                            backgroundColor: 'var(--figma-cta1-bg)',
+                            borderColor: 'var(--figma-cta1-border)',
+                            color: 'var(--figma-cta1-text)',
+                            borderRadius: 'var(--figma-card-radius)'
+                          }}
                         >
                           <Fingerprint className="h-4 w-4" />
                           <span className="font-medium">Verify with Self ID</span>
@@ -443,10 +487,14 @@ export function UnifiedMintProgress({
                     
                     {currentStepDetails.key === 'wallet-sign-prompt' && onSignMessage && walletAddress && (
                       <div className="space-y-3">
-                        <div className="p-3 rounded-xl border border-border/40 bg-muted/20 flex items-center justify-between">
+                        <div className="p-3 border flex items-center justify-between" style={{ 
+                          backgroundColor: 'var(--glass-bg-tertiary)',
+                          borderColor: 'var(--glass-border)',
+                          borderRadius: 'var(--figma-card-radius)'
+                        }}>
                           <div>
-                            <p className="text-[10px] text-muted-foreground mb-0.5">Connected Wallet</p>
-                            <p className="font-mono font-semibold text-xs text-foreground/90">
+                            <p className="text-[10px] mb-0.5" style={{ color: 'var(--page-text-muted)' }}>Connected Wallet</p>
+                            <p className="font-mono font-semibold text-xs" style={{ color: 'var(--page-text-primary)' }}>
                               {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
                             </p>
                           </div>
@@ -455,7 +503,13 @@ export function UnifiedMintProgress({
                               variant="ghost"
                               size="sm"
                               onClick={onChangeWallet}
-                              className="h-7 px-2 text-[10px] hover:bg-background hover:shadow-sm rounded-lg"
+                              className="h-7 px-2 text-[10px]"
+                              style={{
+                                backgroundColor: 'var(--glass-bg-secondary)',
+                                borderColor: 'var(--glass-border)',
+                                color: 'var(--page-text-primary)',
+                                borderRadius: 'calc(var(--figma-card-radius) - 2px)'
+                              }}
                             >
                               Change
                             </Button>
@@ -465,7 +519,13 @@ export function UnifiedMintProgress({
                         <Button
                           onClick={onSignMessage}
                           size="default"
-                          className="gap-2 w-full rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-md"
+                          className="gap-2 w-full h-11"
+                          style={{
+                            backgroundColor: 'var(--figma-cta1-bg)',
+                            borderColor: 'var(--figma-cta1-border)',
+                            color: 'var(--figma-cta1-text)',
+                            borderRadius: 'var(--figma-card-radius)'
+                          }}
                         >
                           <FileCheck className="h-4 w-4" />
                           <span className="font-medium">Sign Message</span>
@@ -524,22 +584,35 @@ export function UnifiedMintProgress({
                           </div>
                         )}
                         
-                        <div className="p-4 rounded-xl border border-border/40 bg-gradient-to-br from-blue-500/5 to-purple-500/5 flex items-center justify-between relative overflow-hidden">
-                          <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))]" />
+                        <div className="p-4 border flex items-center justify-between relative overflow-hidden" style={{ 
+                          backgroundColor: 'var(--glass-bg-tertiary)',
+                          borderColor: 'var(--glass-border)',
+                          borderRadius: 'var(--figma-card-radius)'
+                        }}>
                           <div className="relative">
-                            <p className="text-xs text-muted-foreground font-medium mb-0.5">Minting Fee</p>
-                            <p className="text-[10px] text-muted-foreground/80">Base Network Gas + Service</p>
+                            <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--page-text-primary)' }}>Minting Fee</p>
+                            <p className="text-[10px]" style={{ color: 'var(--page-text-secondary)' }}>Base Network Gas + Service</p>
                           </div>
-                          <div className="flex items-center gap-1.5 relative bg-background/60 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-border/20 shadow-sm">
+                          <div className="flex items-center gap-1.5 relative px-2.5 py-1 border" style={{ 
+                            backgroundColor: 'var(--glass-bg-secondary)',
+                            borderColor: 'var(--glass-border)',
+                            borderRadius: 'calc(var(--figma-card-radius) - 2px)'
+                          }}>
                             <USDCLogo className="h-5 w-5" />
-                            <span className="text-sm font-bold text-foreground">1.00 USDC</span>
+                            <span className="text-sm font-bold" style={{ color: 'var(--page-text-primary)' }}>1.00 USDC</span>
                           </div>
                         </div>
                         
                         <Button
                           onClick={onPayFee}
                           size="default"
-                          className="gap-2 w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-md"
+                          className="gap-2 w-full h-11"
+                          style={{
+                            backgroundColor: 'var(--figma-cta1-bg)',
+                            borderColor: 'var(--figma-cta1-border)',
+                            color: 'var(--figma-cta1-text)',
+                            borderRadius: 'var(--figma-card-radius)'
+                          }}
                         >
                           <Coins className="h-4 w-4" />
                           <span className="font-medium">Pay & Mint</span>
@@ -567,29 +640,39 @@ export function UnifiedMintProgress({
                 {/* Linear Progress Bar */}
                 <div className="space-y-3 pt-3">
                   <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-muted-foreground font-medium">Progress</span>
-                    <span className="font-bold text-primary">{currentProgress}%</span>
+                    <span className="font-medium" style={{ color: 'var(--page-text-secondary)' }}>Progress</span>
+                    <span className="font-bold" style={{ color: 'var(--page-text-primary)' }}>{currentProgress}%</span>
                   </div>
                   
                   {/* Single Linear Bar */}
-                  <div className="relative h-2 w-full bg-muted/30 rounded-full overflow-hidden">
+                  <div className="relative h-2 w-full rounded-full overflow-hidden" style={{ backgroundColor: 'var(--glass-bg-tertiary)' }}>
                     <div 
-                      className="absolute inset-y-0 left-0 bg-primary transition-all duration-700 ease-out rounded-full shadow-[0_0_10px_rgba(var(--primary),0.3)]"
-                      style={{ width: `${currentProgress}%` }}
+                      className="absolute inset-y-0 left-0 transition-all duration-700 ease-out rounded-full"
+                      style={{ 
+                        width: `${currentProgress}%`,
+                        backgroundColor: 'var(--page-text-primary)',
+                        boxShadow: '0 0 10px rgba(99, 150, 244, 0.3)'
+                      }}
                     />
                   </div>
 
                   {/* Steps Labels */}
-                  <div className="flex justify-between text-[9px] text-muted-foreground font-medium px-1">
-                    <span className={cn(currentProgress >= 33 ? "text-primary" : "")}>Proof Generation</span>
-                    <span className={cn(currentProgress >= 66 ? "text-primary" : "")}>Connect Wallet</span>
-                    <span className={cn(currentProgress >= 100 ? "text-primary" : "")}>Mint Complete</span>
+                  <div className="flex justify-between text-[9px] font-medium px-1">
+                    <span style={{ color: currentProgress >= 33 ? 'var(--page-text-primary)' : 'var(--page-text-muted)' }}>Proof Generation</span>
+                    <span style={{ color: currentProgress >= 66 ? 'var(--page-text-primary)' : 'var(--page-text-muted)' }}>Connect Wallet</span>
+                    <span style={{ color: currentProgress >= 100 ? 'var(--page-text-primary)' : 'var(--page-text-muted)' }}>Mint Complete</span>
                   </div>
                   
                   {/* Expandable Steps Button */}
                   <button
                     onClick={() => setIsStepsExpanded(!isStepsExpanded)}
-                    className="w-full flex items-center justify-between px-2 py-1.5 mt-2 rounded-lg hover:bg-muted/30 transition-all duration-200 text-[10px] text-muted-foreground hover:text-foreground group border border-transparent hover:border-border/20"
+                    className="w-full flex items-center justify-between px-2 py-1.5 mt-2 transition-all duration-200 text-[10px] group border"
+                    style={{
+                      backgroundColor: 'var(--glass-bg-tertiary)',
+                      borderColor: 'var(--glass-border)',
+                      borderRadius: 'calc(var(--figma-card-radius) - 2px)',
+                      color: 'var(--page-text-secondary)'
+                    }}
                   >
                     <span className="font-medium">View detailed steps</span>
                     {isStepsExpanded ? (
@@ -601,36 +684,44 @@ export function UnifiedMintProgress({
                   
                   {/* Expanded Detailed Steps */}
                   {isStepsExpanded && (
-                    <div className="space-y-1.5 pt-2 border-t border-border/30 animate-in slide-in-from-top-2 fade-in duration-300">
+                    <div className="space-y-1.5 pt-2 border-t animate-in slide-in-from-top-2 fade-in duration-300" style={{ borderColor: 'var(--glass-border)' }}>
                       {stepConfigs.map((step) => {
                         const status = getStepStatus(step)
                         return (
                           <div key={step.key} className={cn(
-                              "flex items-center gap-2.5 p-2 rounded-lg transition-all duration-200 border",
+                              "flex items-center gap-2.5 p-2 transition-all duration-200 border",
                               step.key === currentStep 
-                                ? "bg-primary/5 border-primary/20 shadow-sm" 
-                                : "border-transparent hover:bg-muted/20 hover:border-border/20"
-                          )}>
+                                ? "shadow-sm" 
+                                : ""
+                          )} style={{
+                            backgroundColor: step.key === currentStep ? 'var(--glass-bg-tertiary)' : 'transparent',
+                            borderColor: step.key === currentStep ? 'var(--glass-border)' : 'transparent',
+                            borderRadius: 'calc(var(--figma-card-radius) - 4px)'
+                          }}>
                             <div className="flex-shrink-0 relative">
                                 {status === 'complete' ? (
                                   <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                                 ) : step.key === currentStep ? (
-                                  <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: 'var(--page-text-primary)' }} />
                                 ) : (
-                                  <Circle className="h-3.5 w-3.5 text-muted-foreground/30" />
+                                  <Circle className="h-3.5 w-3.5" style={{ color: 'var(--page-text-muted)' }} />
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className={cn(
                                   "text-[10px] font-medium",
-                                  status === 'complete' ? "text-muted-foreground/70" :
-                                  step.key === currentStep ? "text-foreground font-semibold" :
-                                  "text-muted-foreground/50"
-                                )}>
+                                  status === 'complete' ? "" :
+                                  step.key === currentStep ? "font-semibold" :
+                                  ""
+                                )} style={{
+                                  color: status === 'complete' ? 'var(--page-text-muted)' :
+                                         step.key === currentStep ? 'var(--page-text-primary)' :
+                                         'var(--page-text-secondary)'
+                                }}>
                                   {step.label}
                                 </p>
                                 {step.key === currentStep && step.description && (
-                                  <p className="text-[9px] text-muted-foreground mt-0.5">
+                                  <p className="text-[9px] mt-0.5" style={{ color: 'var(--page-text-muted)' }}>
                                     {step.description}
                                   </p>
                                 )}
