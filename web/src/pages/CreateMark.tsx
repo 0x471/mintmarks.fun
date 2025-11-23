@@ -1244,21 +1244,23 @@ export default function CreateMark() {
                               /* Progress State */
                               <div className="space-y-6">
                                 {/* Header with POAP & Info */}
-                                <div className="flex items-center gap-4 p-4 rounded-xl border" style={{ 
+                                <div className="flex items-center gap-3 p-2.5 rounded-xl border" style={{ 
                                   backgroundColor: 'var(--glass-bg-tertiary)',
                                   borderColor: 'var(--glass-border)'
                                 }}>
-                                  <div className="flex-shrink-0">
+                                  <div className="flex-shrink-0 scale-90 origin-left">
                                     <POAPBadge email={selectedEmail} size="sm" showVerified={true} className="shadow-md" />
                                   </div>
                                   <div className="min-w-0 flex-1">
-                                    <h3 className="font-bold text-base truncate" style={{ color: 'var(--page-text-primary)' }}>
-                                      Mint Your Mintmark
-                                    </h3>
-                                    <div className="flex items-center gap-2 mt-1">
-                                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20">
-                                        Celo Network
+                                    <div className="flex items-center justify-between gap-2">
+                                      <h3 className="font-bold text-sm truncate" style={{ color: 'var(--page-text-primary)' }}>
+                                        Mint Your Mintmark
+                                      </h3>
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20 whitespace-nowrap">
+                                        Celo
                                       </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-0.5">
                                       <div className="flex items-center gap-1">
                                         <Shield className="w-3 h-3 text-green-500" />
                                         <span className="text-[10px] text-muted-foreground">ZK-Verified</span>
