@@ -13,7 +13,7 @@ import { handleWalletError } from '@/utils/walletErrors'
 import { getCurrentUser } from '@coinbase/cdp-core'
 import { type MintStep } from '@/components/ProgressIndicator'
 import { UnifiedMintProgress, type UnifiedMintStep } from '@/components/UnifiedMintProgress'
-import { celoSepolia, CONTRACTS } from '@/config/chains'
+import { NETWORKS, CONTRACTS, type SupportedNetwork } from '@/config/chains'
 import VerticalBarsNoise from '@/components/VerticalBarsNoise'
 import EmailCard from '@/components/EmailCard'
 import { POAPBadge } from '@/components/POAPBadge'
@@ -26,6 +26,8 @@ import { Loader2, Upload, CheckCircle2, AlertCircle, ArrowLeft, Sparkles, Mail, 
 // Function selector: transfer(address,uint256) = 0xa9059cbb
 
 type Mode = 'file' | 'gmail'
+
+// Removed unused PhaseMeta type and getPhaseMeta function
 
 export default function CreateMark() {
   const navigate = useNavigate()
@@ -69,6 +71,9 @@ export default function CreateMark() {
   // Proof Generation Logs
   const [proofLogs, setProofLogs] = useState<string[]>([])
   const [proofStatus, setProofStatus] = useState<'idle' | 'generating' | 'completed' | 'error'>('idle')
+  
+  // Network Selection
+  const [selectedNetwork, setSelectedNetwork] = useState<SupportedNetwork>('celo-sepolia')
 
   
   // Mock email data for demo
@@ -189,6 +194,18 @@ export default function CreateMark() {
   // Check for external wallet (MetaMask)
   const hasExternalWallet = typeof window !== 'undefined' && !!(window as any).ethereum && !(window as any).ethereum.isCoinbaseWallet
 
+  // Determine email source from email address
+  const getEmailSource = (email: GmailMessageDetail): 'luma' | 'substack' | 'other' => {
+    const from = email.from.toLowerCase()
+    if (from.includes('luma.co') || from.includes('lu.ma') || from.includes('luma-mail.com')) {
+      return 'luma'
+    }
+    if (from.includes('substack.com')) {
+      return 'substack'
+    }
+    return 'other'
+  }
+
   // Proof Progress Indicator removed in favor of UnifiedMintProgress
 
 
@@ -302,18 +319,6 @@ export default function CreateMark() {
     setSelectedEmail(email)
     setProof(null)
     setError(null)
-  }
-
-  // Determine email source from email address
-  const getEmailSource = (email: GmailMessageDetail): 'luma' | 'substack' | 'other' => {
-    const from = email.from.toLowerCase()
-    if (from.includes('luma.co') || from.includes('lu.ma') || from.includes('luma-mail.com')) {
-      return 'luma'
-    }
-    if (from.includes('substack.com')) {
-      return 'substack'
-    }
-    return 'other'
   }
 
   // Filter emails based on selected filter
@@ -692,7 +697,7 @@ export default function CreateMark() {
     }
   }
 
-  // Handle pay minting fee - Send 1 CELO on Celo Sepolia testnet
+  // Handle pay minting fee - Send transaction on selected network
   // ✅ Best Practice: Wallet validation, error handling, transaction validation
   const handlePayFee = async () => {
     // ✅ Best Practice: Wallet validation
@@ -712,33 +717,39 @@ export default function CreateMark() {
       setUnifiedStep('wallet-fee-paying')
       setError(null)
       
+      // Get selected network configuration
+      const networkConfig = NETWORKS[selectedNetwork]
+      const contracts = selectedNetwork === 'celo-sepolia' 
+        ? CONTRACTS.CELO_SEPOLIA 
+        : CONTRACTS.BASE_SEPOLIA
+      
       // ✅ Best Practice: Transaction validation
-      if (!CONTRACTS.MINT_FEE_RECIPIENT) {
+      if (!contracts.MINT_FEE_RECIPIENT) {
         throw new Error('Minting fee recipient address is not configured.')
       }
       
-      // 1 CELO = 1e18 wei
-      const amount = BigInt(1_000_000_000_000_000_000) // 1 CELO
+      // Calculate amount based on network
+      // 1 native token = 1e18 wei
+      const amount = BigInt(1_000_000_000_000_000_000) // 1 native token
       
       console.log('[CDP] 💰 Sending minting fee transaction:', {
+        network: selectedNetwork,
         from: evmAddress,
-        to: CONTRACTS.MINT_FEE_RECIPIENT,
-        amount: '1 CELO',
-        chainId: celoSepolia.id,
+        to: contracts.MINT_FEE_RECIPIENT,
+        amount: `1 ${networkConfig.nativeCurrency.symbol}`,
+        chainId: networkConfig.id,
       })
       
-      // Send native CELO transaction using CDP hooks
-      // Note: 'celo-sepolia' might not be officially supported as a string alias yet.
-      // If this fails, we might need to configure the chain in the provider or use chainId directly if supported.
+      // Send transaction using CDP hooks
       const result = await sendEvmTransaction({
         evmAccount: evmAddress,
-        // @ts-ignore - Celo Sepolia support
-        network: 'celo-sepolia', 
+        // @ts-ignore - Celo Sepolia might not be officially supported
+        network: networkConfig.cdpNetwork,
         transaction: {
-          to: CONTRACTS.MINT_FEE_RECIPIENT as `0x${string}`,
+          to: contracts.MINT_FEE_RECIPIENT as `0x${string}`,
           value: amount,
           data: '0x',
-          chainId: celoSepolia.id, // Celo Sepolia chain ID
+          chainId: networkConfig.id,
         }
       })
       
@@ -869,7 +880,7 @@ export default function CreateMark() {
       <VerticalBarsNoise paused={!!selectedEmail || isUnifiedFlow} />
       
       {/* Header - outside background container, positioned higher */}
-      <div className="max-w-6xl mx-auto px-4 pt-4 sm:px-6 sm:pt-6 md:pt-8 relative z-10">
+      <div className="max-w-6xl mx-auto px-4 pt-4 sm:px-6 sm:pt-6 md:pt-8 relative">
         <header className="mb-8 sm:mb-10 md:mb-12 text-left">
           <div className="max-w-3xl">
             {/* Badge */}
@@ -906,8 +917,8 @@ export default function CreateMark() {
         </div>
 
       {/* Main content */}
-      <div className="max-w-6xl mx-auto px-4 pb-4 sm:px-6 sm:pb-8 md:pb-12 relative z-10 flex flex-col min-h-[calc(100vh-300px)]">
-      <main className="flex-1 relative z-10">
+      <div className="max-w-6xl mx-auto px-4 pb-4 sm:px-6 sm:pb-8 md:pb-12 relative flex flex-col min-h-[calc(100vh-300px)]">
+      <main className="flex-1 relative">
         {!(isAuthenticated || isDemoMode) ? (
           <Card className="shadow-lg">
             <CardHeader>
@@ -957,7 +968,7 @@ export default function CreateMark() {
                         minHeight: 'calc(100vh - 400px)'
                       }}
                     />
-                    <div className="relative z-10 p-5 sm:p-6 md:p-8 space-y-6 sm:space-y-7 md:space-y-8 min-h-[calc(100vh-400px)] flex flex-col">
+                    <div className="relative p-5 sm:p-6 md:p-8 space-y-6 sm:space-y-7 md:space-y-8 min-h-[calc(100vh-400px)] flex flex-col">
                       <div className="space-y-5 sm:space-y-6 md:space-y-7 flex-shrink-0">
                         {/* Header Section */}
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
@@ -1043,7 +1054,7 @@ export default function CreateMark() {
                     </div>
                     
                     {selectedEmail && !isUnifiedFlow && (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 sm:px-6 animate-in fade-in duration-300">
+                      <div className="fixed inset-0 z-[110] flex items-center justify-center px-4 py-6 sm:px-6 animate-in fade-in duration-300">
                         <div
                           className="absolute inset-0 dark:bg-black/80 bg-black/20"
                           style={{
@@ -1156,20 +1167,22 @@ export default function CreateMark() {
 
                     {/* Unified Mint Flow Modal - Non-dismissible */}
                     {isUnifiedFlow && unifiedStep && selectedEmail && (
-                      <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-8 sm:px-6 sm:py-12 animate-in fade-in duration-300">
+                      <div className="fixed inset-0 z-[130] flex items-center justify-center px-4 py-8 sm:px-6 sm:py-12 animate-in fade-in duration-300">
                         {/* Glassmorphic Backdrop */}
                         <div
-                          className="fixed inset-0 z-[100] backdrop-blur-md"
+                          className="fixed inset-0 backdrop-blur-md"
                           style={{
                             background: 'rgba(0, 0, 0, 0.4)',
                             backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
                             WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
+                            zIndex: 100,
                           }}
                         />
 
                         <div 
-                          className="relative z-[101] w-full max-w-lg max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300 card-glass flex flex-col"
+                          className="relative w-full max-w-lg max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300 card-glass flex flex-col"
                           style={{
+                            zIndex: 101,
                             borderRadius: 'var(--figma-card-radius)',
                             background: 'var(--glass-bg-primary)',
                             border: '1px solid var(--glass-border)',
@@ -1180,7 +1193,7 @@ export default function CreateMark() {
                         >
                           {/* Header - Sticky Top */}
                           {unifiedStep !== 'mint-complete' && (
-                            <div className="sticky top-0 z-[102] px-6 pt-6 pb-4 bg-background/95 backdrop-blur-md border-b border-border/50" style={{ backgroundColor: 'var(--glass-bg-primary)' }}>
+                            <div className="sticky top-0 px-6 pt-6 pb-4 bg-background/95 backdrop-blur-md border-b border-border/50" style={{ backgroundColor: 'var(--glass-bg-primary)', zIndex: 102 }}>
                               <div className="flex items-start gap-2">
                                 {/* Header - Two Row Compact Design */}
                                 <div className="flex-1 px-2.5 py-2 rounded-xl border backdrop-blur-sm transition-all" style={{ 
@@ -1317,6 +1330,8 @@ export default function CreateMark() {
                                   hasExternalWallet={hasExternalWallet}
                                   proofLogs={proofLogs}
                                   proofStatus={proofStatus}
+                                  selectedNetwork={selectedNetwork}
+                                  onNetworkChange={setSelectedNetwork}
                                 />
                               </div>
                             )}

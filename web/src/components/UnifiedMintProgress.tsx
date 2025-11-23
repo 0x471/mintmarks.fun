@@ -11,7 +11,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import React from 'react'
-import { Loader2, CheckCircle2, Circle, Wallet, FileCheck, Coins, Zap, ChevronDown, ChevronUp, Info, ArrowRight, Mail, Terminal, X, Fingerprint } from 'lucide-react'
+import { Loader2, CheckCircle2, Circle, Wallet, FileCheck, Coins, Zap, ChevronDown, ChevronUp, Info, ArrowRight, Mail, Terminal, Fingerprint } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card'
@@ -135,6 +135,9 @@ interface UnifiedMintProgressProps {
   hasExternalWallet?: boolean
   proofLogs?: string[]
   proofStatus?: 'idle' | 'generating' | 'completed' | 'error'
+  // Network selection
+  selectedNetwork?: 'base-sepolia' | 'celo-sepolia'
+  onNetworkChange?: (network: 'base-sepolia' | 'celo-sepolia') => void
 }
 
 export function UnifiedMintProgress({
@@ -146,7 +149,7 @@ export function UnifiedMintProgress({
   onSignMessage,
   onPayFee,
   onChangeWallet,
-  onClose,
+  onClose: _onClose, // Renamed to indicate it's intentionally unused
   walletAddress,
   error,
   showOtpInput,
@@ -158,6 +161,8 @@ export function UnifiedMintProgress({
   hasExternalWallet = false,
   proofLogs = [],
   proofStatus = 'idle',
+  selectedNetwork = 'celo-sepolia',
+  onNetworkChange,
 }: UnifiedMintProgressProps) {
   const [isStepsExpanded, setIsStepsExpanded] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -566,6 +571,53 @@ export function UnifiedMintProgress({
                           </div>
                         )}
                         
+                        {/* Network Selection */}
+                        {onNetworkChange && (
+                          <div className="p-3 border rounded-lg" style={{ 
+                            backgroundColor: 'var(--glass-bg-tertiary)',
+                            borderColor: 'var(--glass-border)',
+                            borderRadius: 'var(--figma-card-radius)'
+                          }}>
+                            <label className="text-xs font-medium mb-2 block" style={{ color: 'var(--page-text-primary)' }}>
+                              Select Network
+                            </label>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => onNetworkChange('base-sepolia')}
+                                className={cn(
+                                  "flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all border",
+                                  selectedNetwork === 'base-sepolia'
+                                    ? "bg-blue-500/20 border-blue-500/50 text-blue-500"
+                                    : "bg-transparent border-transparent hover:bg-white/5"
+                                )}
+                                style={{
+                                  borderColor: selectedNetwork === 'base-sepolia' ? 'var(--figma-cta1-border)' : 'var(--glass-border)',
+                                  color: selectedNetwork === 'base-sepolia' ? 'var(--figma-cta1-text)' : 'var(--page-text-secondary)',
+                                  backgroundColor: selectedNetwork === 'base-sepolia' ? 'var(--figma-cta1-bg)' : 'transparent',
+                                }}
+                              >
+                                Base Sepolia
+                              </button>
+                              <button
+                                onClick={() => onNetworkChange('celo-sepolia')}
+                                className={cn(
+                                  "flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all border",
+                                  selectedNetwork === 'celo-sepolia'
+                                    ? "bg-green-500/20 border-green-500/50 text-green-500"
+                                    : "bg-transparent border-transparent hover:bg-white/5"
+                                )}
+                                style={{
+                                  borderColor: selectedNetwork === 'celo-sepolia' ? 'var(--figma-cta1-border)' : 'var(--glass-border)',
+                                  color: selectedNetwork === 'celo-sepolia' ? 'var(--figma-cta1-text)' : 'var(--page-text-secondary)',
+                                  backgroundColor: selectedNetwork === 'celo-sepolia' ? 'var(--figma-cta1-bg)' : 'transparent',
+                                }}
+                              >
+                                Celo Sepolia
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        
                         <div className="p-4 border flex items-center justify-between relative overflow-hidden" style={{ 
                           backgroundColor: 'var(--glass-bg-tertiary)',
                           borderColor: 'var(--glass-border)',
@@ -573,7 +625,9 @@ export function UnifiedMintProgress({
                         }}>
                           <div className="relative">
                             <p className="text-xs font-medium mb-0.5" style={{ color: 'var(--page-text-primary)' }}>Minting Fee</p>
-                            <p className="text-[10px]" style={{ color: 'var(--page-text-secondary)' }}>Celo Sepolia Gas + Service</p>
+                            <p className="text-[10px]" style={{ color: 'var(--page-text-secondary)' }}>
+                              {selectedNetwork === 'celo-sepolia' ? 'Celo Sepolia' : 'Base Sepolia'} Gas + Service
+                            </p>
                           </div>
                           <div className="flex items-center gap-1.5 relative px-2.5 py-1 border" style={{ 
                             backgroundColor: 'var(--glass-bg-secondary)',
@@ -581,7 +635,9 @@ export function UnifiedMintProgress({
                             borderRadius: 'calc(var(--figma-card-radius) - 2px)'
                           }}>
                             <Coins className="h-5 w-5" style={{ color: 'var(--page-text-primary)' }} />
-                            <span className="text-sm font-bold" style={{ color: 'var(--page-text-primary)' }}>1.00 CELO</span>
+                            <span className="text-sm font-bold" style={{ color: 'var(--page-text-primary)' }}>
+                              1.00 {selectedNetwork === 'celo-sepolia' ? 'CELO' : 'ETH'}
+                            </span>
                           </div>
                         </div>
                         
