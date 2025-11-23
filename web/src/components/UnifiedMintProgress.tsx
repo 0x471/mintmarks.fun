@@ -1,5 +1,4 @@
 /**
-
  * Unified Mint Progress Component - Optimized UI/UX
  * 
  * UI/UX Improvements:
@@ -130,7 +129,7 @@ interface UnifiedMintProgressProps {
   onChangeWallet?: () => void
   walletAddress?: string
   error?: string | null
-  // Support for OTP flow props (kept for compatibility, but might need refactoring if not used)
+  // Support for OTP flow props
   showOtpInput?: boolean
   otpEmail?: string
   otpCode?: string
@@ -138,7 +137,7 @@ interface UnifiedMintProgressProps {
   onOtpCodeChange?: (code: string) => void
   isSendingOtp?: boolean
   isVerifyingOtp?: boolean
-  hasExternalWallet?: boolean // MetaMask or other external wallet detected
+  hasExternalWallet?: boolean
 }
 
 export function UnifiedMintProgress({
@@ -195,9 +194,9 @@ export function UnifiedMintProgress({
   const currentPhaseGroup = phaseGroups.find(g => g.phase === currentPhase)
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn('space-y-6', className)}>
       {/* Horizontal Timeline - Top */}
-      <div className="flex items-center justify-center gap-2 px-4 py-3">
+      <div className="flex items-center justify-center gap-2 px-4 py-3 overflow-x-auto no-scrollbar">
         {phaseGroups.map((group, index) => {
           const phaseStatus = getPhaseStatus(group.phase)
           const isActive = phaseStatus === 'active'
@@ -208,19 +207,19 @@ export function UnifiedMintProgress({
           return (
             <React.Fragment key={group.phase}>
               {/* Step Badge */}
-              <div className="flex-1 flex justify-center px-2">
+              <div className="flex-shrink-0">
                 <ProgressBadge
                   label={`${index + 1}. ${group.shortTitle}`}
                   status={isComplete ? 'complete' : isActive ? 'active' : 'pending'}
                   icon={PhaseIcon as any}
-                  className="w-full max-w-[180px]"
+                  className="min-w-[120px] sm:min-w-[140px] shadow-sm"
                 />
               </div>
               {/* Arrow */}
               {index < phaseGroups.length - 1 && (
                 <ArrowRight className={cn(
-                  'h-4 w-4 text-muted-foreground flex-shrink-0',
-                  index < phaseGroups.findIndex(g => g.phase === currentPhase) && 'text-green-500'
+                  'h-4 w-4 flex-shrink-0 transition-colors duration-500',
+                  isComplete ? 'text-green-500' : 'text-border'
                 )} />
               )}
             </React.Fragment>
@@ -230,59 +229,60 @@ export function UnifiedMintProgress({
 
       {/* Current Step Card - Main Focus */}
       {currentStepDetails && currentPhaseGroup && (
-        <Card className="overflow-hidden border-[var(--figma-card-stroke)] backdrop-blur-[var(--figma-card-blur)] bg-[var(--modal-bg)]">
-          <CardHeader className="pb-2 pt-3">
-            <div className="flex items-center gap-3">
+        <Card className="overflow-hidden rounded-2xl border border-border/40 backdrop-blur-xl bg-background/40 shadow-2xl shadow-black/5 transition-all duration-500">
+          <CardHeader className="pb-4 pt-5 px-5 sm:px-6">
+            <div className="flex items-center gap-4">
               <div className={cn(
-                'flex items-center justify-center w-8 h-8 rounded-lg',
-                getStepStatus(currentStepDetails) === 'complete' && 'bg-green-500/10',
-                getStepStatus(currentStepDetails) !== 'complete' && 'bg-primary/10'
+                'flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-500',
+                getStepStatus(currentStepDetails) === 'complete' 
+                  ? 'bg-green-500/10 text-green-500 shadow-[0_0_12px_rgba(34,197,94,0.2)]' 
+                  : 'bg-blue-500/10 text-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.2)]'
               )}>
                 {getStepStatus(currentStepDetails) === 'complete' ? (
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <CheckCircle2 className="h-5 w-5" />
                 ) : currentStepDetails.key.includes('loading') || currentStepDetails.key.includes('generating') || currentStepDetails.key.includes('connecting') || currentStepDetails.key.includes('signing') || currentStepDetails.key.includes('paying') || currentStepDetails.key.includes('submitting') || currentStepDetails.key.includes('confirming') ? (
-                  <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  <Circle className="h-4 w-4 text-primary fill-primary" />
+                  <Circle className="h-5 w-5 fill-current" />
                 )}
               </div>
-              <div className="flex-1">
-                <CardTitle className="text-sm">
+              <div className="flex-1 space-y-1">
+                <CardTitle className="text-base sm:text-lg font-semibold tracking-tight">
                   {currentStepDetails.label}
                 </CardTitle>
                 {currentStepDetails.description && (
-                  <CardDescription className="mt-0.5 flex items-start gap-1 text-xs">
-                    <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                    <span>{currentStepDetails.description}</span>
+                  <CardDescription className="flex items-start gap-1.5 text-sm">
+                    <Info className="h-4 w-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
+                    <span className="text-muted-foreground/80">{currentStepDetails.description}</span>
                   </CardDescription>
                 )}
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3 pt-2">
+          
+          <CardContent className="space-y-6 px-5 sm:px-6 pb-6">
             {/* Action Buttons */}
             {currentStepDetails.requiresAction && (
-              <div className="space-y-3">
+              <div className="space-y-4 pt-2">
                 {currentStepDetails.key === 'wallet-prompt' && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--page-text-secondary)' }}>
-                      <Info className="h-3 w-3" />
-                      <span>Will mint on Base network</span>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg border border-border/30">
+                      <Info className="h-4 w-4 text-blue-500" />
+                      <span>We'll help you create or connect a wallet to mint on Base.</span>
                     </div>
                     
                     {/* Wallet Selection: CDP or External */}
                     {!showOtpInput && (
-                      <div className="grid grid-cols-1 gap-2">
+                      <div className="grid grid-cols-1 gap-3">
                         {/* CDP Embedded Wallet Option */}
                         {onConnectCDPWallet && (
                           <Button
                             onClick={onConnectCDPWallet}
                             size="lg"
-                            variant="default"
-                            className="gap-2 w-full h-11"
+                            className="gap-3 w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20 transition-all duration-300 hover:scale-[1.01]"
                           >
-                            <Mail className="h-4 w-4" />
-                            Connect with Email (CDP)
+                            <Mail className="h-5 w-5" />
+                            <span className="font-medium">Connect with Email (Recommended)</span>
                           </Button>
                         )}
                         
@@ -292,10 +292,10 @@ export function UnifiedMintProgress({
                             onClick={onConnectExternalWallet}
                             size="lg"
                             variant="outline"
-                            className="gap-2 w-full h-11"
+                            className="gap-3 w-full h-12 rounded-xl border-border/60 hover:bg-muted/50 hover:border-border transition-all duration-300"
                           >
-                            <Wallet className="h-4 w-4" />
-                            Connect with MetaMask
+                            <Wallet className="h-5 w-5 text-orange-500" />
+                            <span className="font-medium">Connect with MetaMask</span>
                           </Button>
                         )}
                         
@@ -304,9 +304,9 @@ export function UnifiedMintProgress({
                           <Button
                             onClick={onConnectWallet}
                             size="lg"
-                            className="gap-2 w-full h-11"
+                            className="gap-3 w-full h-12 rounded-xl"
                           >
-                            <Wallet className="h-4 w-4" />
+                            <Wallet className="h-5 w-5" />
                             Connect Wallet
                           </Button>
                         )}
@@ -315,23 +315,25 @@ export function UnifiedMintProgress({
                     
                     {/* OTP Input Section */}
                     {showOtpInput && (
-                      <div className="space-y-3">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium" style={{ color: 'var(--page-text-primary)' }}>
+                      <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <div className="space-y-3">
+                          <label className="text-sm font-medium text-foreground/80 ml-1">
                             Enter OTP Code
                           </label>
-                          <input
-                            type="text"
-                            value={otpCode}
-                            onChange={(e) => onOtpCodeChange?.(e.target.value)}
-                            placeholder="123456"
-                            disabled={isVerifyingOtp}
-                            maxLength={6}
-                            className="w-full px-3 py-2 rounded-md border bg-[var(--modal-bg)] border-[var(--figma-card-stroke)] text-center text-lg tracking-widest text-[var(--page-text-primary)]"
-                          />
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={otpCode}
+                              onChange={(e) => onOtpCodeChange?.(e.target.value)}
+                              placeholder="123456"
+                              disabled={isVerifyingOtp}
+                              maxLength={6}
+                              className="w-full h-14 px-4 rounded-xl border bg-background/50 border-border/50 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-center text-2xl font-mono tracking-[0.5em] placeholder:tracking-normal"
+                            />
+                          </div>
                           {otpEmail && (
-                            <p className="text-xs" style={{ color: 'var(--page-text-secondary)' }}>
-                              Check your email ({otpEmail}) for the verification code
+                            <p className="text-xs text-center text-muted-foreground">
+                              We sent a code to <span className="font-medium text-foreground">{otpEmail}</span>
                             </p>
                           )}
                         </div>
@@ -339,8 +341,8 @@ export function UnifiedMintProgress({
                           <Button
                             onClick={onConnectCDPWallet}
                             size="lg"
-                            disabled={isSendingOtp || isVerifyingOtp || !otpCode}
-                            className="gap-2 w-full h-11"
+                            disabled={isSendingOtp || isVerifyingOtp || !otpCode || otpCode.length < 6}
+                            className="gap-2 w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20"
                           >
                             {isSendingOtp ? (
                               <>
@@ -366,74 +368,69 @@ export function UnifiedMintProgress({
                 )}
                 
                 {currentStepDetails.key === 'wallet-sign-prompt' && onSignMessage && walletAddress && (
-                  <div className="space-y-2">
-                    <Card className="border-[var(--figma-card-stroke)] bg-[var(--modal-bg)]">
-                      <CardContent className="p-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <CardDescription className="text-xs mb-0.5">Connected Wallet</CardDescription>
-                            <p className="font-mono font-semibold text-xs" style={{ color: 'var(--page-text-primary)' }}>
-                              {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-                            </p>
-                          </div>
-                          {onChangeWallet && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={onChangeWallet}
-                              className="h-7 px-2 text-xs"
-                            >
-                              Change
-                            </Button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--page-text-secondary)' }}>
-                      <Shield className="h-3 w-3" />
-                      <span>Sign to verify ownership on Base</span>
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-xl border border-border/40 bg-muted/20 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Connected Wallet</p>
+                        <p className="font-mono font-semibold text-sm text-foreground/90">
+                          {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                        </p>
+                      </div>
+                      {onChangeWallet && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={onChangeWallet}
+                          className="h-8 px-3 text-xs hover:bg-background hover:shadow-sm rounded-lg"
+                        >
+                          Change
+                        </Button>
+                      )}
                     </div>
+                    
                     <Button
                       onClick={onSignMessage}
                       size="lg"
-                      className="gap-2 w-full h-11"
+                      className="gap-2 w-full h-12 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/20 transition-all duration-300 hover:scale-[1.01]"
                     >
-                      <FileCheck className="h-4 w-4" />
-                      Sign Message
+                      <FileCheck className="h-5 w-5" />
+                      <span className="font-medium">Sign Message</span>
                     </Button>
+                    
+                    <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1.5">
+                      <Shield className="h-3 w-3" />
+                      Secure signature request
+                    </p>
                   </div>
                 )}
                 
                 {currentStepDetails.key === 'wallet-fee-prompt' && onPayFee && (
-                  <div className="space-y-2">
-                    <Card className="border-[var(--figma-card-stroke)] bg-[var(--modal-bg)]">
-                      <CardContent className="p-3">
-                        <div className="flex items-center justify-between">
-                          <CardDescription className="text-xs">Minting Fee</CardDescription>
-                          <div className="flex items-center gap-1.5">
-                            <USDCLogo 
-                              className="h-5 w-5 flex-shrink-0"
-                              style={{ color: 'var(--page-text-primary)' }}
-                            />
-                            <span className="text-base font-bold" style={{ color: 'var(--page-text-primary)' }}>
-                              1 USDC
-                            </span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--page-text-secondary)' }}>
-                      <Zap className="h-3 w-3" />
-                      <span>Fast and low-cost minting on Base</span>
+                  <div className="space-y-4">
+                    <div className="p-5 rounded-xl border border-border/40 bg-gradient-to-br from-blue-500/5 to-purple-500/5 flex items-center justify-between relative overflow-hidden">
+                      <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))]" />
+                      <div className="relative">
+                        <p className="text-sm text-muted-foreground font-medium mb-1">Minting Fee</p>
+                        <p className="text-xs text-muted-foreground/80">Base Network Gas + Service</p>
+                      </div>
+                      <div className="flex items-center gap-2 relative bg-background/60 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border/20 shadow-sm">
+                        <USDCLogo className="h-6 w-6" />
+                        <span className="text-lg font-bold text-foreground">1.00 USDC</span>
+                      </div>
                     </div>
+                    
                     <Button
                       onClick={onPayFee}
                       size="lg"
-                      className="gap-2 w-full h-11"
+                      className="gap-2 w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg shadow-cyan-500/20 transition-all duration-300 hover:scale-[1.01]"
                     >
-                      <Coins className="h-4 w-4" />
-                      Pay Minting Fee
+                      <Coins className="h-5 w-5" />
+                      <span className="font-medium">Pay & Mint</span>
                     </Button>
+                    
+                    <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1.5">
+                      <Zap className="h-3 w-3 text-amber-500" />
+                      Lightning fast transaction on Base
+                    </p>
                   </div>
                 )}
               </div>
@@ -441,85 +438,86 @@ export function UnifiedMintProgress({
 
             {/* Loading State */}
             {!currentStepDetails.requiresAction && (
-              <div className="flex items-center gap-3 py-3">
-                <Loader2 className="h-4 w-4 text-primary animate-spin" />
-                <span className="text-sm font-medium" style={{ color: 'var(--page-text-secondary)' }}>
-                  {currentStepDetails.phase === 'proof' && 'Generating ZK-proof...'}
-                  {currentStepDetails.phase === 'wallet' && 'Processing wallet transaction...'}
-                  {currentStepDetails.phase === 'mint' && 'Minting on Base network...'}
+              <div className="flex flex-col items-center justify-center gap-3 py-4 text-center">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full animate-pulse" />
+                  <Loader2 className="h-8 w-8 text-primary animate-spin relative z-10" />
+                </div>
+                <span className="text-sm font-medium text-muted-foreground animate-pulse">
+                  {currentStepDetails.phase === 'proof' && 'Generating Zero-Knowledge Proof...'}
+                  {currentStepDetails.phase === 'wallet' && 'Waiting for wallet confirmation...'}
+                  {currentStepDetails.phase === 'mint' && 'Minting your NFT on Base...'}
                 </span>
               </div>
             )}
 
             {/* Progress Bar */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium" style={{ color: 'var(--page-text-secondary)' }}>
-                  Overall Progress
-                </span>
-                <span className="text-xs font-bold" style={{ color: 'var(--page-text-primary)' }}>
-                  {currentProgress}%
-                </span>
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-muted-foreground">Overall Progress</span>
+                <span className="font-bold text-primary">{currentProgress}%</span>
               </div>
-              <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+              <div className="w-full bg-muted/50 rounded-full h-2 overflow-hidden p-[1px]">
                 <div
-                  className="h-1.5 rounded-full transition-all duration-500 ease-out"
-                  style={{ 
-                    width: `${currentProgress}%`,
-                    backgroundColor: 'var(--primary)',
-                  }}
+                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-700 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                  style={{ width: `${currentProgress}%` }}
                 />
               </div>
             </div>
 
             {/* Detailed Steps - Expandable */}
             {expandedPhase === currentPhase && currentPhaseGroup && (
-              <Card className="mt-3 border-[var(--figma-card-stroke)] bg-[var(--modal-bg)]">
-                <CardContent className="p-3">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-xs">
-                        {currentPhaseGroup.title} Steps
-                      </CardTitle>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => setExpandedPhase(null)}
-                        className="h-6 w-6 p-0"
-                      >
-                        <ChevronDown className="h-3 w-3 rotate-180" />
-                      </Button>
-                    </div>
-                    <div className="space-y-1">
-                      {currentPhaseGroup.steps.map((step) => {
-                        const stepStatus = getStepStatus(step)
-                        const isCurrentStep = step.key === currentStep
-                        return (
-                          <div key={step.key} className="flex items-center gap-2 py-1">
-                            <div className="flex-shrink-0">
-                              {stepStatus === 'complete' ? (
-                                <CheckCircle2 className="h-3 w-3 text-green-500" />
-                              ) : isCurrentStep ? (
-                                <Loader2 className="h-3 w-3 text-primary animate-spin" />
-                              ) : (
-                                <Circle className="h-3 w-3 text-muted-foreground" />
-                              )}
+              <div className="mt-2 pt-4 border-t border-border/40 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {currentPhaseGroup.title}
+                  </h4>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setExpandedPhase(null)}
+                    className="h-6 w-6 p-0 hover:bg-muted/50 rounded-full"
+                  >
+                    <ChevronDown className="h-3.5 w-3.5 rotate-180 opacity-70" />
+                  </Button>
+                </div>
+                <div className="space-y-2 pl-1">
+                  {currentPhaseGroup.steps.map((step, index) => {
+                    const stepStatus = getStepStatus(step)
+                    const isCurrentStep = step.key === currentStep
+                    return (
+                      <div key={step.key} className="flex items-center gap-3 py-1">
+                        <div className="flex-shrink-0 relative">
+                          {stepStatus === 'complete' ? (
+                            <div className="bg-green-500/10 rounded-full p-0.5">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
                             </div>
-                            <span className={cn(
-                              'text-xs',
-                              stepStatus === 'complete' && 'text-green-600 dark:text-green-400',
-                              isCurrentStep && 'text-primary font-semibold',
-                              stepStatus === 'pending' && 'text-muted-foreground'
-                            )}>
-                              {step.label}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                          ) : isCurrentStep ? (
+                            <div className="bg-primary/10 rounded-full p-0.5">
+                              <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+                            </div>
+                          ) : (
+                            <div className="bg-muted rounded-full p-0.5">
+                              <Circle className="h-3.5 w-3.5 text-muted-foreground/40" />
+                            </div>
+                          )}
+                          {isCurrentStep && index > 0 && (
+                             <div className="absolute top-full left-1/2 w-px h-full bg-border -translate-x-1/2 -z-10" />
+                          )}
+                        </div>
+                        <span className={cn(
+                          'text-sm transition-colors',
+                          stepStatus === 'complete' && 'text-muted-foreground line-through opacity-70',
+                          isCurrentStep && 'text-foreground font-medium',
+                          stepStatus === 'pending' && 'text-muted-foreground/60'
+                        )}>
+                          {step.label}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
             )}
 
             {/* Expand/Collapse Button */}
@@ -528,23 +526,25 @@ export function UnifiedMintProgress({
                 variant="ghost" 
                 size="sm"
                 onClick={() => setExpandedPhase(currentPhase)}
-                className="gap-2 w-full h-8 text-xs"
-                style={{ color: 'var(--page-text-secondary)' }}
+                className="w-full h-8 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 rounded-lg transition-colors"
               >
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className="h-3 w-3 mr-2" />
                 Show detailed steps
               </Button>
             )}
 
             {/* Error Display */}
             {error && (
-              <Card className="border-red-300 bg-red-50 dark:bg-red-900/10 dark:border-red-500/30">
-                <CardContent className="p-3">
-                  <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+              <div className="p-4 rounded-xl border border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-900/50 animate-in fade-in shake">
+                <div className="flex items-start gap-3">
+                  <div className="bg-red-100 dark:bg-red-900/40 p-1.5 rounded-full shrink-0">
+                     <Info className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  </div>
+                  <p className="text-sm text-red-600 dark:text-red-400 font-medium pt-0.5">
                     {error}
                   </p>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
