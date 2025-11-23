@@ -25,3 +25,8 @@ dist-ssr
 
 # Circuit files
 circuit.json
+
+*.md
+*.txt
+
+docs/

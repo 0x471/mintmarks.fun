@@ -1,3 +1,10 @@
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
 // Adapted from mintmarks_circuits/scripts/utils.js for browser use
 
 import { Buffer } from "buffer";
@@ -10,12 +17,30 @@ export function getConstrainedHeaderSequence(
 ): { index: string; length: string } {
   const headerStr = headers.toString();
 
+  // Debug: Log header string for troubleshooting (only in dev)
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    console.log(`[getConstrainedHeaderSequence] Looking for header: "${fieldName}"`);
+    console.log(`[getConstrainedHeaderSequence] Headers length: ${headerStr.length}`);
+  }
+
   // Build regex for case-insensitive header field
-  const regex = new RegExp(
-    `[${fieldName[0].toUpperCase()}${fieldName[0].toLowerCase()}]${fieldName
-      .slice(1)
-      .toLowerCase()}:.*?(?=\\r?\\n(?![\\t ]))`
-  );
+  // Try multiple patterns to handle different email formats
+  const patterns = [
+    // Standard pattern: "Date: value"
+    new RegExp(
+      `[${fieldName[0].toUpperCase()}${fieldName[0].toLowerCase()}]${fieldName
+        .slice(1)
+        .toLowerCase()}:.*?(?=\\r?\\n(?![\\t ]))`,
+      'g'
+    ),
+    // Pattern with optional whitespace: "Date : value" or "Date:value"
+    new RegExp(
+      `[${fieldName[0].toUpperCase()}${fieldName[0].toLowerCase()}]${fieldName
+        .slice(1)
+        .toLowerCase()}\\s*:.*?(?=\\r?\\n(?![\\t ]))`,
+      'g'
+    ),
+  ];
 
   // Find all DKIM-Signature header ranges to skip them
   const dkimRanges: Array<{ start: number; end: number }> = [];
@@ -28,25 +53,43 @@ export function getConstrainedHeaderSequence(
     });
   }
 
-  // Find the header field outside DKIM ranges
-  const matches = [...headerStr.matchAll(new RegExp(regex, 'g'))];
-  for (const match of matches) {
-    const matchStart = match.index!;
+  // Try each pattern
+  for (const regex of patterns) {
+    // Reset regex lastIndex
+    regex.lastIndex = 0;
+    
+    const matches = [...headerStr.matchAll(regex)];
+    for (const match of matches) {
+      const matchStart = match.index!;
 
-    // Check if this match is inside a DKIM-Signature header
-    const insideDkim = dkimRanges.some(
-      (range) => matchStart >= range.start && matchStart <= range.end
-    );
+      // Check if this match is inside a DKIM-Signature header
+      const insideDkim = dkimRanges.some(
+        (range) => matchStart >= range.start && matchStart <= range.end
+      );
 
-    if (!insideDkim) {
-      return {
-        index: matchStart.toString(),
-        length: match[0].length.toString(),
-      };
+      if (!insideDkim) {
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+          console.log(`[getConstrainedHeaderSequence] Found "${fieldName}" at index ${matchStart}, length ${match[0].length}`);
+        }
+        return {
+          index: matchStart.toString(),
+          length: match[0].length.toString(),
+        };
+      }
     }
   }
 
-  throw new Error(`Header field "${fieldName}" not found outside DKIM headers`);
+  // If not found, provide helpful error message
+  const availableHeaders = headerStr
+    .split(/\r?\n/)
+    .slice(0, 20)
+    .map((line, idx) => `${idx}: ${line.substring(0, 80)}`)
+    .join('\n');
+  
+  throw new Error(
+    `Header field "${fieldName}" not found outside DKIM headers.\n` +
+    `Available headers (first 20 lines):\n${availableHeaders}`
+  );
 }
 
 // Get the sequence for just the header value (after "fieldname:")
@@ -104,3 +147,25 @@ export function getEventNameSequence(
   // fallback: use entire subject value as event name
   return subjectValueSequence;
 }
+
+import type { GmailMessageDetail } from '../types/gmail';
+import { emailFilterConfig, type EmailSource } from '../config/emailFilters';
+
+/**
+ * Determines the source of an email ('luma', 'substack', or 'other')
+ * based on the 'from' address and the domains defined in the filter configuration.
+ * @param email The email detail object.
+ * @returns The source of the email.
+ */
+export const getEmailSource = (email: GmailMessageDetail): EmailSource | 'other' => {
+  const from = email.from.toLowerCase();
+  for (const source in emailFilterConfig) {
+    const config = emailFilterConfig[source as EmailSource];
+    if (config.apiQuery.domains.some(domain => from.includes(domain))) {
+      return source as EmailSource;
+    }
+  }
+  return 'other';
+};
+
+  

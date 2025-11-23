@@ -4,12 +4,14 @@ pragma solidity ^0.8.27;
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IUltraVerifier} from "./interfaces/IUltraVerifier.sol";
+import {ProofOfHuman} from "./ProofOfHuman.sol";
 import "@verifier/UltraHonkVerifier.sol";
 
 /**
  * @title Mintmarks
  * @notice Proof-of-attendance system using ERC1155 and UltraHonk ZK proofs
  * @dev Each event becomes a collection, minted by verified attendees
+ * @dev Integrated with SELF Protocol for sybil resistance (one human per event)
  */
 contract Mintmarks is ERC1155, Ownable {
     // ============ Errors ============
@@ -26,6 +28,9 @@ contract Mintmarks is ERC1155, Ownable {
 
     /// @notice UltraHonk proof verifier contract
     IUltraVerifier public immutable verifier;
+
+    /// @notice SELF Protocol proof of human contract
+    ProofOfHuman public immutable proofOfHuman;
 
     /// @notice Number of public inputs expected from circuit
     uint256 public constant EXPECTED_PUBLIC_INPUTS = 324;
@@ -79,7 +84,8 @@ contract Mintmarks is ERC1155, Ownable {
     event Minted(
         address indexed minter,
         uint256 indexed tokenId,
-        bytes32 indexed nullifier,
+        bytes32 indexed emailNullifier,
+        uint256 humanNullifier,
         string eventName
     );
 
@@ -98,13 +104,16 @@ contract Mintmarks is ERC1155, Ownable {
     /**
      * @notice Initialize the Mintmarks contract
      * @param _verifier Address of the UltraHonk verifier contract
+     * @param _proofOfHuman Address of the ProofOfHuman contract
      * @param _uri Base URI for token metadata
      */
     constructor(
         address _verifier,
+        address _proofOfHuman,
         string memory _uri
     ) ERC1155(_uri) Ownable(msg.sender) {
         verifier = IUltraVerifier(_verifier);
+        proofOfHuman = ProofOfHuman(_proofOfHuman);
     }
 
     // ============ Metadata Functions ============
@@ -175,19 +184,30 @@ contract Mintmarks is ERC1155, Ownable {
         bytes32 emailNullifier = publicInputs[1];
         string memory eventName = _extractEventName(publicInputs);
 
-        // Create unique collection ID from event name + pubkey hash
-        // This prevents collisions: same event name from different domains = different collections
-        bytes32 collectionId = keccak256(abi.encodePacked(eventName, pubkeyHash));
+        // STEP 1: Verify human via SELF Protocol and consume for this event
+        // This checks:
+        //  - Email nullifier was verified by SELF
+        //  - msg.sender matches verified address
+        //  - Human hasn't claimed this event before
+        uint256 humanNullifier = proofOfHuman.verifyAndConsumeHuman(
+            emailNullifier,
+            msg.sender,
+            eventName
+        );
 
-        // Check nullifier not used
+        // STEP 2: Check email nullifier not used globally
         if (usedNullifiers[emailNullifier]) {
             revert AlreadyClaimed();
         }
 
-        // Verify proof
+        // STEP 3: Verify Noir proof
         if (!verifier.verify(proof, publicInputs)) {
             revert InvalidProof();
         }
+
+        // Create unique collection ID from event name + pubkey hash
+        // This prevents collisions: same event name from different domains = different collections
+        bytes32 collectionId = keccak256(abi.encodePacked(eventName, pubkeyHash));
 
         // Get or create collection
         tokenId = collectionIdToTokenId[collectionId];
@@ -206,13 +226,13 @@ contract Mintmarks is ERC1155, Ownable {
             collections[tokenId].totalMinted++;
         }
 
-        // Register nullifier
+        // Register email nullifier as used
         usedNullifiers[emailNullifier] = true;
 
         // Mint token
         _mint(msg.sender, tokenId, 1, "");
 
-        emit Minted(msg.sender, tokenId, emailNullifier, eventName);
+        emit Minted(msg.sender, tokenId, emailNullifier, humanNullifier, eventName);
     }
 
     /**

@@ -27,9 +27,10 @@ contract IntegrationTest is Test {
         verifier = new HonkVerifier();
         console.log("Deployed UltraHonkVerifier at:", address(verifier));
 
-        // Deploy Mintmarks contract
+        // Deploy Mintmarks contract (using mock address for ProofOfHuman in tests)
         mintmarks = new Mintmarks(
             address(verifier),
+            address(0x1), // Mock ProofOfHuman address for testing
             "https://mintmarks.fun/api/metadata/{id}"
         );
         console.log("Deployed Mintmarks at:", address(mintmarks));

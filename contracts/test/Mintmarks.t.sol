@@ -47,9 +47,10 @@ contract MintmarksTest is Test {
         // Deploy mock verifier
         verifier = new MockVerifier();
 
-        // Deploy Mintmarks contract
+        // Deploy Mintmarks contract (using mock address for ProofOfHuman in tests)
         mintmarks = new Mintmarks(
             address(verifier),
+            address(0x1), // Mock ProofOfHuman address for testing
             "https://mintmarks.fun/api/metadata/{id}"
         );
 

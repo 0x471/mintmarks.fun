@@ -2,9 +2,12 @@
   "network": "celo-sepolia",
   "chainId": 11142220,
   "rpcUrl": "https://forno.celo-sepolia.celo-testnet.org",
+  "selfHubAddress": "0x16ECBA51e18a4a7e61fdC417f0d47AFEeDfbed74",
+  "scopeSeed": "mintmarks.fun",
   "contracts": {
-    "mintmarks": "",
-    "verifier": ""
+    "verifier": "0xbcb250d82ee4fdcc4589ed154fd505ce2ad06879",
+    "proofOfHuman": "0x5de91f697028ace9a503e0694715898830071984",
+    "mintmarks": "0x5f7d082f4e5a9634d105bcb512686fd4953c9338"
   },
   "fees": {
     "collection": "0.01",

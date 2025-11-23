@@ -11,5 +11,8 @@
     "mint": "forge script script/Mint.s.sol:MintScript --rpc-url $CELO_SEPOLIA_RPC_URL --broadcast",
     "mint:preview": "node script/mint.js",
     "flatten": "forge flatten src/Mintmarks.sol -o Mintmarks-flattened.sol"
+  },
+  "dependencies": {
+    "@selfxyz/contracts": "^1.2.3"
   }
 }

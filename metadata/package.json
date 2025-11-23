@@ -6,11 +6,13 @@
   "main": "./src/index.ts",
   "scripts": {
     "generate": "tsx src/generateMetadata.ts",
+    "set-metadata": "tsx src/setMetadata.ts",
     "dev": "tsx watch src/generateMetadata.ts"
   },
   "dependencies": {
     "@fal-ai/serverless-client": "^0.14.3",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "ethers": "^6.15.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

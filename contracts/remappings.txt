@@ -1,0 +1,4 @@
+@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
+forge-std/=lib/forge-std/src/
+@verifier/=../mintmarks_circuits/contract/
+@selfxyz/contracts/=node_modules/@selfxyz/contracts/

@@ -1,0 +1,22 @@
+# DEPLOYED CONTRACTS - DO NOT LOSE THESE ADDRESSES
+# Backup created during frontend integration
+
+# Contract Addresses - Deployed on Celo Sepolia (CURRENT - FROM web/.env)
+# NOTE: Using lowercase (non-checksummed) addresses as required by SELF Protocol
+VITE_PROOF_OF_HUMAN_ADDRESS=0x5f927e64b72cc92ad8a47951e6311d49bcf71271
+VITE_MINTMARKS_ADDRESS=0xb6b5b320226ccc381e80561a25e9596816f8a323
+VITE_VERIFIER_ADDRESS=0xff4c542df3340abcf8043b1a5afb874344f06674
+
+# SELF Protocol
+VITE_SELF_SCOPE_SEED=mintmarks.fun
+
+# Network Details
+Network: Celo Sepolia Testnet
+Chain ID: 11142220
+RPC: https://forno.celo-sepolia.celo-testnet.org
+Explorer: https://sepolia.celoscan.io/
+
+# CRITICAL: These contracts are WORKING and DEPLOYED
+# ProofOfHuman: Address-based verification tracking (verify-once-mint-multiple pattern)
+# Mintmarks: ERC-1155 NFT contract with ZK proof verification
+# Verifier: UltraHonk verifier for Noir proofs

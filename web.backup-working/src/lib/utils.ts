@@ -1,0 +1,106 @@
+// Adapted from mintmarks_circuits/scripts/utils.js for browser use
+
+import { Buffer } from "buffer";
+
+// Get the index and length of a header field
+// Skips DKIM-Signature headers to avoid finding fields inside the h= list
+export function getConstrainedHeaderSequence(
+  headers: Buffer,
+  fieldName: string
+): { index: string; length: string } {
+  const headerStr = headers.toString();
+
+  // Build regex for case-insensitive header field
+  const regex = new RegExp(
+    `[${fieldName[0].toUpperCase()}${fieldName[0].toLowerCase()}]${fieldName
+      .slice(1)
+      .toLowerCase()}:.*?(?=\\r?\\n(?![\\t ]))`
+  );
+
+  // Find all DKIM-Signature header ranges to skip them
+  const dkimRanges: Array<{ start: number; end: number }> = [];
+  const dkimRegex = /DKIM-Signature:.*?(?=\r?\n(?![\t ]))/gs;
+  let dkimMatch;
+  while ((dkimMatch = dkimRegex.exec(headerStr)) !== null) {
+    dkimRanges.push({
+      start: dkimMatch.index,
+      end: dkimMatch.index + dkimMatch[0].length,
+    });
+  }
+
+  // Find the header field outside DKIM ranges
+  const matches = [...headerStr.matchAll(new RegExp(regex, 'g'))];
+  for (const match of matches) {
+    const matchStart = match.index!;
+
+    // Check if this match is inside a DKIM-Signature header
+    const insideDkim = dkimRanges.some(
+      (range) => matchStart >= range.start && matchStart <= range.end
+    );
+
+    if (!insideDkim) {
+      return {
+        index: matchStart.toString(),
+        length: match[0].length.toString(),
+      };
+    }
+  }
+
+  throw new Error(`Header field "${fieldName}" not found outside DKIM headers`);
+}
+
+// Get the sequence for just the header value (after "fieldname:")
+// Note: DKIM canonicalized headers are lowercase with no space after colon
+export function getHeaderValueSequence(
+  headerSequence: { index: string; length: string },
+  fieldName: string
+): { index: string; length: string } {
+  const headerIndex = parseInt(headerSequence.index);
+  const headerLength = parseInt(headerSequence.length);
+
+  // Canonicalized headers are lowercase with no space: "fieldname:value"
+  const prefixLength = fieldName.length + 1; // "fieldname:" = name + ":"
+
+  // Value starts after "fieldname:"
+  const valueIndex = headerIndex + prefixLength;
+
+  // Value length is total length minus prefix
+  const valueLength = headerLength - prefixLength;
+
+  return {
+    index: valueIndex.toString(),
+    length: valueLength.toString(),
+  };
+}
+
+// Extract event name from subject line
+// Luma emails have subject like "Thanks for joining <Event Name>"
+export function getEventNameSequence(
+  headers: Buffer,
+  subjectValueSequence: { index: string; length: string }
+): { index: string; length: string } {
+  const valueIndex = parseInt(subjectValueSequence.index);
+  const valueLength = parseInt(subjectValueSequence.length);
+
+  // Extract the subject value bytes
+  const subjectValue = headers.slice(valueIndex, valueIndex + valueLength).toString();
+
+  // Look for "Thanks for joining " prefix
+  const prefix = 'Thanks for joining ';
+  const prefixIndex = subjectValue.indexOf(prefix);
+
+  if (prefixIndex !== -1) {
+    // Event name starts after the prefix
+    const eventNameOffset = prefixIndex + prefix.length;
+    const eventNameIndex = valueIndex + eventNameOffset;
+    const eventNameLength = valueLength - eventNameOffset;
+
+    return {
+      index: eventNameIndex.toString(),
+      length: eventNameLength.toString(),
+    };
+  }
+
+  // fallback: use entire subject value as event name
+  return subjectValueSequence;
+}
