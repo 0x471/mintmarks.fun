@@ -162,7 +162,7 @@ export function UnifiedMintProgress({
   proofLogs = [],
   proofStatus = 'idle',
 }: UnifiedMintProgressProps) {
-  const [expandedPhase, setExpandedPhase] = useState<string | null>(null)
+  const [isStepsExpanded, setIsStepsExpanded] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   
   // Auto-scroll logs
@@ -207,8 +207,8 @@ export function UnifiedMintProgress({
 
   return (
     <div className={cn('space-y-4 relative', className)}>
-      {/* Close Button - Better Position */}
-      <div className="absolute -top-4 -right-2 z-50">
+      {/* Close Button - Modal Corner */}
+      <div className="absolute -top-2 -right-2 z-50">
         <Button
           variant="ghost"
           size="icon"
@@ -257,55 +257,6 @@ export function UnifiedMintProgress({
            {/* Current Step Card - Main Focus */}
           {currentStepDetails && currentPhaseGroup && (
             <Card className="overflow-hidden rounded-2xl border border-border/40 backdrop-blur-xl bg-background/40 shadow-2xl shadow-black/5 transition-all duration-500">
-              {/* Log Terminal - Integrated at top if active or recently active */}
-              {(proofStatus !== 'idle' || proofLogs.length > 0) && (
-                <div className="border-b border-border/40 bg-black/90 text-green-500 font-mono text-xs">
-                   <div className="flex items-center justify-between bg-white/5 px-3 py-1.5 border-b border-white/10">
-                      <div className="flex items-center gap-2">
-                          <Terminal className="h-3 w-3" />
-                          <span className="opacity-70 font-semibold text-[10px]">ZK Proof Logs</span>
-                      </div>
-                      <div className="flex gap-1.5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-red-500/50"></div>
-                          <div className="w-1.5 h-1.5 rounded-full bg-yellow-500/50"></div>
-                          <div className="w-1.5 h-1.5 rounded-full bg-green-500/50"></div>
-                      </div>
-                   </div>
-                   <div 
-                      ref={scrollRef}
-                      className="max-h-[100px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent p-2 font-mono text-[10px] leading-relaxed"
-                    >
-                      {proofLogs.length === 0 && proofStatus === 'generating' ? (
-                         <div className="flex items-center gap-2 opacity-60">
-                           <Loader2 className="h-3 w-3 animate-spin" />
-                           <span>Initializing proof generation...</span>
-                         </div>
-                      ) : (
-                        proofLogs.map((log, i) => (
-                          <div key={i} className="break-all flex gap-2">
-                            <span className="opacity-40 select-none min-w-[24px]">
-                                {new Date().toLocaleTimeString([], {hour12: false, minute:'2-digit', second:'2-digit'})}
-                            </span>
-                            <span className={cn(
-                                log.includes('ERROR') ? 'text-red-400' : 
-                                log.includes('Successfully') ? 'text-green-400 font-bold' : 
-                                'text-gray-300'
-                            )}>{log}</span>
-                          </div>
-                        ))
-                      )}
-                      {proofStatus === 'generating' && (
-                         <div className="animate-pulse text-green-500/50 mt-1">_ Processing...</div>
-                      )}
-                      {proofStatus === 'completed' && (
-                         <div className="text-green-400 font-bold mt-1">
-                            ✨ Proof Generation Complete
-                         </div>
-                      )}
-                   </div>
-                </div>
-              )}
-
               <CardHeader className="pb-2 pt-4 px-4 sm:px-5">
                 <div className="flex items-center gap-3">
                   <div className={cn(
@@ -476,6 +427,55 @@ export function UnifiedMintProgress({
                     
                     {currentStepDetails.key === 'wallet-fee-prompt' && onPayFee && (
                       <div className="space-y-3">
+                        {/* ZK Proof Logs - Small terminal above Pay Minting Fee */}
+                        {(proofStatus !== 'idle' || proofLogs.length > 0) && (
+                          <div className="rounded-lg border border-border/40 bg-black/90 text-green-500 font-mono text-[9px] overflow-hidden">
+                             <div className="flex items-center justify-between bg-white/5 px-2 py-1 border-b border-white/10">
+                                <div className="flex items-center gap-1.5">
+                                    <Terminal className="h-2.5 w-2.5" />
+                                    <span className="opacity-70 font-semibold">ZK Proof Logs</span>
+                                </div>
+                                <div className="flex gap-1">
+                                    <div className="w-1 h-1 rounded-full bg-red-500/50"></div>
+                                    <div className="w-1 h-1 rounded-full bg-yellow-500/50"></div>
+                                    <div className="w-1 h-1 rounded-full bg-green-500/50"></div>
+                                </div>
+                             </div>
+                             <div 
+                                ref={scrollRef}
+                                className="max-h-[60px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent p-1.5 font-mono text-[9px] leading-relaxed"
+                              >
+                                {proofLogs.length === 0 && proofStatus === 'generating' ? (
+                                   <div className="flex items-center gap-1.5 opacity-60">
+                                     <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                                     <span>Initializing proof generation...</span>
+                                   </div>
+                                ) : (
+                                  proofLogs.map((log, i) => (
+                                    <div key={i} className="break-all flex gap-1.5">
+                                      <span className="opacity-40 select-none min-w-[20px]">
+                                          {new Date().toLocaleTimeString([], {hour12: false, minute:'2-digit', second:'2-digit'})}
+                                      </span>
+                                      <span className={cn(
+                                          log.includes('ERROR') ? 'text-red-400' : 
+                                          log.includes('Successfully') ? 'text-green-400 font-bold' : 
+                                          'text-gray-300'
+                                      )}>{log}</span>
+                                    </div>
+                                  ))
+                                )}
+                                {proofStatus === 'generating' && (
+                                   <div className="animate-pulse text-green-500/50 mt-0.5 text-[8px]">_ Processing...</div>
+                                )}
+                                {proofStatus === 'completed' && (
+                                   <div className="text-green-400 font-bold mt-0.5 text-[9px]">
+                                      ✨ Proof Generation Complete
+                                   </div>
+                                )}
+                             </div>
+                          </div>
+                        )}
+                        
                         <div className="p-4 rounded-xl border border-border/40 bg-gradient-to-br from-blue-500/5 to-purple-500/5 flex items-center justify-between relative overflow-hidden">
                           <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))]" />
                           <div className="relative">
