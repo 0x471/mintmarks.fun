@@ -67,35 +67,54 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
-                {/* User Profile & Wallet Info */}
-                <div className="group relative flex items-center h-9 pl-1.5 pr-3 rounded-full border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-all duration-200 cursor-default min-w-[140px] sm:min-w-[180px]">
-                  
-                  {/* Wallet Icon Box */}
-                  <div className={`flex items-center justify-center h-6 w-6 rounded-full mr-2 transition-colors duration-300 shrink-0 ${
+                {/* User Profile & Wallet Info - Glassmorphic Design */}
+                <div 
+                  className="group relative flex items-center h-9 pl-2 pr-3 rounded-full transition-all duration-300 cursor-default min-w-[140px] sm:min-w-[200px]"
+                  style={{
+                    backgroundColor: 'var(--glass-bg-secondary)',
+                    border: '1px solid var(--glass-border)',
+                    backdropFilter: 'blur(var(--glass-blur)) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(180%)',
+                    boxShadow: 'var(--glass-shadow)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--glass-bg-primary)'
+                    e.currentTarget.style.borderColor = 'var(--page-border-color)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--glass-bg-secondary)'
+                    e.currentTarget.style.borderColor = 'var(--glass-border)'
+                  }}
+                >
+                  {/* Wallet Icon - Round, Gray when not connected, Green when connected */}
+                  <div 
+                    className={`flex items-center justify-center h-6 w-6 rounded-full mr-2 transition-all duration-300 shrink-0 ${
                       hasWallet && !walletLoading 
-                          ? 'bg-green-500/10 text-green-600 border border-green-500/20 shadow-[0_0_6px_rgba(34,197,94,0.2)]' 
-                          : 'bg-muted text-muted-foreground border border-border'
-                  }`} title={hasWallet ? 'Wallet Connected' : 'No Wallet'}>
-                    <Wallet className="h-3 w-3" />
+                        ? 'bg-green-500/20 text-green-500 dark:text-green-400 border border-green-500/30 shadow-[0_0_8px_rgba(34,197,94,0.3)]' 
+                        : 'bg-gray-500/20 text-gray-500 dark:text-gray-400 border border-gray-500/30'
+                    }`} 
+                    title={hasWallet ? 'Wallet Connected' : 'No Wallet'}
+                  >
+                    <Wallet className="h-3.5 w-3.5" />
                   </div>
 
                   {/* Content Wrapper */}
-                  <div className="flex-1 relative h-5 overflow-hidden">
-                      {/* Email (Default) */}
-                      <div className={`absolute inset-0 flex items-center transition-transform duration-300 ease-in-out ${hasWallet && !walletLoading ? 'group-hover:-translate-y-full' : ''}`}>
-                          <span className="text-xs sm:text-sm font-medium truncate w-full">
-                              {userEmail}
-                          </span>
-                      </div>
+                  <div className="flex-1 relative h-5 overflow-hidden min-w-0">
+                    {/* Email (Default) */}
+                    <div className={`absolute inset-0 flex items-center transition-transform duration-300 ease-in-out ${hasWallet && !walletLoading ? 'group-hover:-translate-y-full' : ''}`}>
+                      <span className="text-xs sm:text-sm font-medium truncate w-full" style={{ color: 'var(--page-text-primary)' }}>
+                        {userEmail}
+                      </span>
+                    </div>
 
-                      {/* Wallet Address (Hover) */}
-                      {hasWallet && !walletLoading && (
-                          <div className="absolute inset-0 flex items-center translate-y-full transition-transform duration-300 ease-in-out group-hover:translate-y-0">
-                              <span className="text-xs sm:text-sm font-mono text-muted-foreground truncate w-full">
-                                  {evmAddress?.slice(0, 6)}...{evmAddress?.slice(-4)}
-                              </span>
-                          </div>
-                      )}
+                    {/* Wallet Address (Hover) */}
+                    {hasWallet && !walletLoading && (
+                      <div className="absolute inset-0 flex items-center translate-y-full transition-transform duration-300 ease-in-out group-hover:translate-y-0">
+                        <span className="text-xs sm:text-sm font-mono truncate w-full" style={{ color: 'var(--page-text-secondary)' }}>
+                          {evmAddress?.slice(0, 6)}...{evmAddress?.slice(-4)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -104,7 +123,18 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   variant="ghost"
                   size="icon"
                   onClick={logout}
-                  className="h-9 w-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                  className="h-9 w-9 rounded-full shrink-0 transition-all duration-200"
+                  style={{
+                    color: 'var(--page-text-muted)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'var(--destructive)'
+                    e.currentTarget.style.backgroundColor = 'var(--destructive)/10'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--page-text-muted)'
+                    e.currentTarget.style.backgroundColor = 'transparent'
+                  }}
                   title="Disconnect"
                 >
                   <LogOut className="h-4 w-4" />
