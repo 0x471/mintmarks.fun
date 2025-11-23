@@ -11,6 +11,9 @@ import type { NFTMetadata } from '@/services/nftMinting'
 import { useToast } from '@/components/useToast'
 import { type MintStep } from '@/components/ProgressIndicator'
 import { UnifiedMintProgress, type UnifiedMintStep } from '@/components/UnifiedMintProgress'
+import { celoSepolia, CONTRACTS } from '@/config/chains'
+import { sendMintingFee, validateTransactionParams } from '@/utils/transactions'
+import { handleWalletError } from '@/utils/walletErrors'
 import VerticalBarsNoise from '@/components/VerticalBarsNoise'
 import EmailCard from '@/components/EmailCard'
 import { POAPBadge } from '@/components/POAPBadge'
@@ -514,9 +517,10 @@ export default function CreateMark() {
             throw new Error('Wallet creation failed. No EOA address returned.')
           }
         } catch (err: unknown) {
+          // Best Practice: Use centralized error handler
           console.error('Failed to verify OTP:', err)
-          const error = err as Error
-          setError(error.message || 'Failed to verify OTP')
+          const errorMessage = handleWalletError(err)
+          setError(errorMessage)
           setOtpCode('')
           setUnifiedStep('wallet-prompt')
         } finally {
@@ -539,10 +543,10 @@ export default function CreateMark() {
           console.log('[CDP] OTP sent successfully, flowId:', result.flowId)
           
         } catch (err: unknown) {
+          // Best Practice: Use centralized error handler
           console.error('[CDP] Failed to send OTP:', err)
-          console.error('[CDP] Error details:', JSON.stringify(err, null, 2))
-          const error = err as Error
-          setError(error.message || 'Failed to send OTP')
+          const errorMessage = handleWalletError(err)
+          setError(errorMessage)
           setUnifiedStep('wallet-prompt')
         } finally {
           setIsSendingOtp(false)
@@ -550,9 +554,10 @@ export default function CreateMark() {
       }
       
     } catch (err: unknown) {
+      // Best Practice: Use centralized error handler
       console.error('Failed to connect wallet:', err)
-      const error = err as Error
-      setError(error.message || 'Failed to connect wallet')
+      const errorMessage = handleWalletError(err)
+      setError(errorMessage)
       setUnifiedStep('wallet-prompt')
     }
   }
@@ -606,7 +611,7 @@ export default function CreateMark() {
   }, [walletStatus.evmAddress, walletAddress, isUnifiedFlow, unifiedStep])
 
   const handleShareOnX = () => {
-    const text = encodeURIComponent('I just minted my Mintmark on Base! #onchain #Base');
+    const text = encodeURIComponent('I just minted my Mintmark on Celo! #onchain #Celo');
     const url = encodeURIComponent(`${window.location.origin}/marks`);
     const shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
     window.open(shareUrl, '_blank', 'noopener,noreferrer')
@@ -634,7 +639,8 @@ export default function CreateMark() {
     }
   }
 
-  // Handle pay minting fee - Send 1 USDC on Base Sepolia testnet
+  // Handle pay minting fee - Send 1 CELO on Celo Sepolia testnet
+  // Best Practice: Use transaction helper with retry logic and error handling
   const handlePayFee = async () => {
     if (!evmAddress || !walletAddress) {
       setError('Wallet not connected')
@@ -646,42 +652,24 @@ export default function CreateMark() {
       setUnifiedStep('wallet-fee-paying')
       setError(null)
       
-      // Base Sepolia USDC contract address (testnet)
-      // Note: Verify the actual USDC contract address on Base Sepolia
-      const USDC_CONTRACT_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
-      const MINTING_FEE_RECIPIENT = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb' // Replace with actual recipient
-      
-      // USDC uses 6 decimal places, so 1 USDC = 1000000 (1e6)
-      const amount = BigInt(1_000_000) // 1 USDC
-      
-      // ERC20 transfer function: transfer(address to, uint256 amount)
-      // Function selector: 0xa9059cbb (first 4 bytes of keccak256("transfer(address,uint256)"))
-      // Format: 0xa9059cbb + to (32 bytes padded) + amount (32 bytes padded)
-      const functionSelector = '0xa9059cbb'
-      
-      // Pad address to 32 bytes (remove 0x prefix, pad left with zeros)
-      const toAddress = MINTING_FEE_RECIPIENT.slice(2).padStart(64, '0')
-      
-      // Pad amount to 32 bytes (hex, pad left with zeros)
-      const amountHex = amount.toString(16).padStart(64, '0')
-      
-      // Combine: selector + to + amount
-      const transferData = functionSelector + toAddress + amountHex
-      
-      // Send transaction using CDP hooks
-      const result = await sendEvmTransaction({
+      // Best Practice: Validate transaction parameters before sending
+      const validation = validateTransactionParams({
         evmAccount: evmAddress,
-        network: 'base-sepolia',
-        transaction: {
-          to: USDC_CONTRACT_ADDRESS as `0x${string}`,
-          value: 0n,
-          data: transferData as `0x${string}`,
-          chainId: 84532, // Base Sepolia chain ID
-          type: 'eip1559'
-        }
+        to: CONTRACTS.MINT_FEE_RECIPIENT,
+        value: BigInt(1_000_000_000_000_000_000), // 1 CELO
+        chainId: celoSepolia.id,
       })
+
+      if (!validation.valid) {
+        setError(validation.error || 'Invalid transaction parameters')
+        setUnifiedStep('wallet-fee-prompt')
+        return
+      }
       
-      console.log('USDC transfer transaction hash:', result.transactionHash)
+      // Best Practice: Use centralized transaction helper with retry logic
+      const result = await sendMintingFee(sendEvmTransaction, evmAddress)
+      
+      console.log('CELO transfer transaction hash:', result.transactionHash)
       
       // Wait for transaction confirmation
       // Note: CDP hooks automatically track transaction status via txData
@@ -693,9 +681,10 @@ export default function CreateMark() {
       await startMinting()
       
     } catch (err: unknown) {
-      const error = err as Error
-      console.error('Failed to pay fee:', error)
-      setError(error.message || 'Failed to pay minting fee')
+      // Best Practice: Use centralized error handler
+      const errorMessage = handleWalletError(err)
+      console.error('Failed to pay fee:', err)
+      setError(errorMessage)
       setUnifiedStep('wallet-fee-prompt')
     }
   }
@@ -703,7 +692,7 @@ export default function CreateMark() {
   // Monitor transaction status
   useEffect(() => {
     if (txData?.status === 'success' && unifiedStep === 'wallet-fee-paying') {
-      console.log('USDC transfer confirmed:', txData.receipt)
+      console.log('CELO transfer confirmed:', txData.receipt)
       showToast('Minting fee paid successfully!', 'success')
     } else if (txData?.status === 'error' && unifiedStep === 'wallet-fee-paying') {
       setError(txData.error?.message || 'Transaction failed')
@@ -1095,187 +1084,168 @@ export default function CreateMark() {
                     {/* Unified Mint Flow Modal - Non-dismissible */}
                     {isUnifiedFlow && unifiedStep && selectedEmail && (
                       <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-6 sm:px-6 animate-in fade-in duration-300">
-                        {/* Backdrop - Non-clickable */}
+                        {/* Glassmorphic Backdrop */}
                         <div
-                          className="fixed inset-0 dark:bg-black/80 bg-black/20"
+                          className="fixed inset-0 backdrop-blur-md"
                           style={{
-                            backdropFilter: 'blur(8px) saturate(120%)',
-                            WebkitBackdropFilter: 'blur(8px) saturate(120%)',
-                            willChange: 'backdrop-filter',
+                            background: 'rgba(0, 0, 0, 0.4)',
+                            backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
+                            WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
                           }}
                         />
 
                         <div 
-                          className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-hidden border border-solid rounded-lg animate-in zoom-in-95 duration-300"
+                          className="relative z-10 w-full max-w-6xl max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300 card-glass"
                           style={{
                             borderRadius: 'var(--figma-card-radius)',
-                            borderColor: 'var(--modal-border)',
-                            backdropFilter: 'blur(4px)',
-                            WebkitBackdropFilter: 'blur(4px)',
-                            backgroundColor: 'var(--modal-bg)',
-                            boxShadow: 'var(--modal-shadow)',
-                            willChange: 'transform, opacity',
+                            background: 'var(--glass-bg-primary)',
+                            border: '1px solid var(--glass-border)',
+                            backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
+                            WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
+                            boxShadow: 'var(--glass-shadow)',
                           }}
                         >
-                          <div className="relative overflow-y-auto max-h-[90vh] p-4 sm:p-6">
-                            {unifiedStep === 'mint-complete' ? (
-                              /* Success State */
-                              <div className="text-center space-y-6">
-                                {/* Success Animation */}
-                                <div className="flex justify-center">
-                                  <div className="relative">
-                                    <div className="absolute inset-0 bg-green-500/30 rounded-full blur-2xl animate-pulse"></div>
-                                    <CheckCircle2 className="h-20 w-20 text-green-500 relative z-10" />
+                          {/* Modal Content - Split Layout */}
+                          <div className="flex flex-col md:flex-row h-full md:h-[600px]">
+                            
+                            {/* Left Side: Preview & Info */}
+                            <div className="w-full md:w-[45%] p-6 sm:p-8 flex flex-col justify-center items-center border-b md:border-b-0 md:border-r border-white/10 dark:border-white/10">
+                              {/* POAP Preview with Glow Effect */}
+                              <div className="relative group mb-6">
+                                <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                                {selectedEmail && (
+                                  <div className="relative transform transition-transform duration-500 hover:scale-105">
+                                    <POAPBadge
+                                      email={selectedEmail}
+                                      size="lg"
+                                      showVerified={true}
+                                      status={unifiedStep === 'mint-complete' ? 'verified' : 'verified'}
+                                      className="shadow-2xl shadow-black/10"
+                                    />
                                   </div>
-                                </div>
+                                )}
+                              </div>
+                              
+                              {/* Info Text */}
+                              <div className="text-center space-y-3 max-w-xs mx-auto">
+                                <h3 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--page-text-primary)' }}>
+                                  Mint Your Mintmark
+                                </h3>
+                                <p className="text-sm leading-relaxed" style={{ color: 'var(--page-text-secondary)' }}>
+                                  Transform your commitment into a verifiable on-chain proof on Base Network.
+                                </p>
                                 
-                                <div className="space-y-3">
-                                  <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight" style={{ color: 'var(--page-text-primary)' }}>
-                                    Your Mintmark Is Onchain!
-                                  </h2>
-                                  <p className="text-lg font-medium" style={{ color: 'var(--page-text-secondary)' }}>
-                                    A permanent, zero‑knowledge mark of your commitment is now live on Base.
-                                  </p>
-                                </div>
-                                
-                                {/* POAP Badge - Final */}
-                                <div className="flex justify-center pt-4">
-                                  <POAPBadge email={selectedEmail} size="md" showVerified={true} />
-                                </div>
-                                
-                                {/* Action */}
-                                <div className="pt-6">
-                                  <div className="flex flex-col sm:flex-row gap-3 w-full">
-                                    <Button
-                                      onClick={() => {
-                                        navigate('/marks')
-                                      }}
-                                      variant="outline"
-                                      className="gap-2 w-full sm:flex-1"
-                                      size="lg"
-                                    >
-                                      View My Marks
-                                      <ArrowRight className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      onClick={handleShareOnX}
-                                      className="gap-2 w-full sm:flex-1"
-                                      size="lg"
-                                    >
-                                      Share on X
-                                    </Button>
+                                {/* Security Badges */}
+                                <div className="flex items-center justify-center gap-3 pt-2">
+                                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full border" style={{ 
+                                    backgroundColor: 'var(--glass-bg-tertiary)',
+                                    borderColor: 'var(--glass-border)'
+                                  }}>
+                                    <Shield className="w-3 h-3" style={{ color: 'var(--page-text-primary)' }} />
+                                    <span className="text-[10px] font-medium" style={{ color: 'var(--page-text-primary)' }}>ZK-Verified</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 px-2 py-1 rounded-full border" style={{ 
+                                    backgroundColor: 'var(--glass-bg-tertiary)',
+                                    borderColor: 'var(--glass-border)'
+                                  }}>
+                                    <Lock className="w-3 h-3" style={{ color: 'var(--page-text-primary)' }} />
+                                    <span className="text-[10px] font-medium" style={{ color: 'var(--page-text-primary)' }}>Private</span>
                                   </div>
                                 </div>
                               </div>
-                            ) : (
-                              /* Progress State */
-                              <div className="space-y-4">
-                                {/* Horizontal Header with Email Info */}
-                                <div className="flex items-start gap-3 p-3 rounded-lg border" style={{ 
-                                  borderColor: 'var(--page-border-color)',
-                                  backgroundColor: 'var(--page-badge-bg)'
-                                }}>
-                                  {/* Left Icon - Bookmark */}
-                                  <div className="flex-shrink-0 w-10 h-10 rounded-none flex items-center justify-center" style={{ 
-                                    backgroundColor: 'var(--page-badge-icon-bg)',
-                                    color: 'var(--page-badge-icon-text)'
-                                  }}>
-                                    <Bookmark className="w-5 h-5" />
-                                  </div>
-                                  
-                                  {/* Right Content */}
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <h2 className="text-sm font-bold" style={{ color: 'var(--page-text-primary)' }}>
-                                        Mint Your Mintmark
-                                      </h2>
-                                      <span className="text-[10px] font-medium px-2 py-1 rounded" style={{ 
-                                        backgroundColor: 'var(--primary)',
-                                        color: 'var(--primary-foreground)'
+                            </div>
+
+                            {/* Right Side: Progress & Actions */}
+                            <div className="w-full md:w-[55%] flex flex-col" style={{ background: 'var(--glass-bg-secondary)' }}>
+                              <div className="flex-1 overflow-y-auto p-6 sm:p-8 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+                                {unifiedStep === 'mint-complete' ? (
+                                  /* Success State */
+                                  <div className="flex flex-col items-center justify-center h-full space-y-6 text-center">
+                                    {/* Success Animation */}
+                                    <div className="relative mb-4">
+                                      <div className="absolute inset-0 bg-green-500/30 rounded-full blur-2xl animate-pulse"></div>
+                                      <div className="p-4 rounded-full ring-1 relative z-10" style={{ 
+                                        backgroundColor: 'var(--glass-bg-tertiary)',
+                                        borderColor: 'var(--glass-border)'
                                       }}>
-                                        Base Network
-                                      </span>
-                                    </div>
-                                    
-                                    {/* Email Details Card */}
-                                    <div className="p-2 rounded border" style={{ 
-                                      borderColor: 'var(--page-border-color)',
-                                      backgroundColor: 'var(--glass-bg-tertiary)'
-                                    }}>
-                                      <div className="flex items-center justify-between">
-                                        <div className="flex-1 min-w-0">
-                                          <p className="text-xs font-semibold truncate" style={{ color: 'var(--page-text-primary)' }}>
-                                            {selectedEmail?.from?.includes('luma') ? 'Luma' : selectedEmail?.from?.includes('substack') ? 'Substack' : 'Event'} • {selectedEmail?.date ? new Date(selectedEmail.date).toLocaleDateString('en-US', { 
-                                              month: 'short', 
-                                              day: 'numeric',
-                                              year: 'numeric'
-                                            }) : 'Today'}
-                                          </p>
-                                          <p className="text-[10px] truncate mt-0.5" style={{ color: 'var(--page-text-secondary)' }}>
-                                            {selectedEmail?.subject || 'Event Registration'}
-                                          </p>
-                                        </div>
-                                        <div className="flex items-center gap-1 ml-2">
-                                          <Shield className="w-3 h-3" style={{ color: 'var(--page-text-muted)' }} />
-                                          <span className="text-[9px] font-medium" style={{ color: 'var(--page-text-muted)' }}>
-                                            ZK-proof
-                                          </span>
-                                        </div>
+                                        <CheckCircle2 className="h-12 w-12 text-green-500" />
                                       </div>
                                     </div>
+                                    
+                                    <div className="space-y-2">
+                                      <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--page-text-primary)' }}>
+                                        Mint Successful!
+                                      </h2>
+                                      <p className="text-sm max-w-xs mx-auto" style={{ color: 'var(--page-text-secondary)' }}>
+                                        Your commitment has been permanently recorded on Base network.
+                                      </p>
+                                    </div>
+                                    
+                                    {/* Action Buttons */}
+                                    <div className="pt-4 w-full max-w-xs space-y-3">
+                                      <Button
+                                        onClick={() => navigate('/marks')}
+                                        variant="outline"
+                                        className="w-full h-11 gap-2"
+                                      >
+                                        View My Marks
+                                        <ArrowRight className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        onClick={handleShareOnX}
+                                        className="w-full h-11 gap-2"
+                                        style={{
+                                          backgroundColor: 'var(--figma-cta1-bg)',
+                                          borderColor: 'var(--figma-cta1-border)',
+                                          color: 'var(--figma-cta1-text)'
+                                        }}
+                                      >
+                                        <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">
+                                          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                                        </svg>
+                                        Share on X
+                                      </Button>
+                                    </div>
                                   </div>
-                                </div>
-
-                                {/* Unified Progress Component */}
-                                <UnifiedMintProgress
-                                  currentStep={unifiedStep}
-                                  onConnectCDPWallet={handleConnectCDPWallet}
-                                  onConnectExternalWallet={hasExternalWallet ? handleConnectExternalWallet : undefined}
-                                  onVerifySelfID={handleVerifySelfID}
-                                  onSignMessage={handleSignMessage}
-                                  onPayFee={handlePayFee}
-                                  onChangeWallet={() => {
-                                    // Reset wallet state to allow user to connect different wallet
-                                    setWalletAddress(null)
-                                    setShowOtpInput(false)
-                                    setOtpCode('')
-                                    setFlowId(null)
-                                    setUnifiedStep('wallet-prompt')
-                                  }}
-                                  onClose={() => {
-                                    // Close modal
-                                    setIsUnifiedFlow(false)
-                                    setUnifiedStep(null)
-                                    setProofStatus('idle')
-                                    setProofLogs([])
-                                  }}
-                                  onShare={handleShareOnX}
-                                  walletAddress={walletAddress || undefined}
-                                  error={error}
-                                  showOtpInput={showOtpInput}
-                                  otpEmail={userEmail || ''}
-                                  otpCode={otpCode}
-                                  onOtpCodeChange={(code) => setOtpCode(code)}
-                                  isSendingOtp={isSendingOtp}
-                                  isVerifyingOtp={isVerifyingOtp}
-                                  hasExternalWallet={hasExternalWallet}
-                                  proofLogs={proofLogs}
-                                  proofStatus={proofStatus}
-                                />
-
-                                {/* Security footer */}
-                                <div className="flex items-center justify-center gap-4 pt-2 text-[10px]" style={{ color: 'var(--page-text-secondary)' }}>
-                                  <div className="flex items-center gap-1">
-                                    <Shield className="w-3 h-3" />
-                                    <span>Zero-knowledge</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Lock className="w-3 h-3" />
-                                    <span>Private & Secure</span>
-                                  </div>
-                                </div>
+                                ) : (
+                                  /* Progress State */
+                                  <UnifiedMintProgress
+                                    currentStep={unifiedStep}
+                                    onConnectCDPWallet={handleConnectCDPWallet}
+                                    onConnectExternalWallet={hasExternalWallet ? handleConnectExternalWallet : undefined}
+                                    onVerifySelfID={handleVerifySelfID}
+                                    onSignMessage={handleSignMessage}
+                                    onPayFee={handlePayFee}
+                                    onChangeWallet={() => {
+                                      // Reset wallet state to allow user to connect different wallet
+                                      setWalletAddress(null)
+                                      setShowOtpInput(false)
+                                      setOtpCode('')
+                                      setFlowId(null)
+                                      setUnifiedStep('wallet-prompt')
+                                    }}
+                                    onClose={() => {
+                                      // Close modal
+                                      setIsUnifiedFlow(false)
+                                      setUnifiedStep(null)
+                                      setProofStatus('idle')
+                                      setProofLogs([])
+                                    }}
+                                    walletAddress={walletAddress || undefined}
+                                    error={error}
+                                    showOtpInput={showOtpInput}
+                                    otpEmail={userEmail || ''}
+                                    otpCode={otpCode}
+                                    onOtpCodeChange={(code) => setOtpCode(code)}
+                                    isSendingOtp={isSendingOtp}
+                                    isVerifyingOtp={isVerifyingOtp}
+                                    hasExternalWallet={hasExternalWallet}
+                                    proofLogs={proofLogs}
+                                    proofStatus={proofStatus}
+                                  />
+                                )}
                               </div>
-                            )}
+                            </div>
                           </div>
                         </div>
                       </div>
