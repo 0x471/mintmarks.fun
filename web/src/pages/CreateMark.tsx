@@ -612,15 +612,19 @@ export default function CreateMark() {
         setUnifiedStep('wallet-connecting')
         
         try {
+          console.log('[CDP] Sending OTP to email:', emailToUse)
           const result = await signInWithEmail({ email: emailToUse })
+          console.log('[CDP] Sign-in result:', result)
           
           // Store flowId and show OTP input
           setFlowId(result.flowId)
           setShowOtpInput(true)
           setUnifiedStep('wallet-prompt')
+          console.log('[CDP] OTP sent successfully, flowId:', result.flowId)
           
         } catch (err: unknown) {
-          console.error('Failed to send OTP:', err)
+          console.error('[CDP] Failed to send OTP:', err)
+          console.error('[CDP] Error details:', JSON.stringify(err, null, 2))
           const error = err as Error
           setError(error.message || 'Failed to send OTP')
           setUnifiedStep('wallet-prompt')
