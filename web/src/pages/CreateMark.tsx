@@ -1243,29 +1243,30 @@ export default function CreateMark() {
                             ) : (
                               /* Progress State */
                               <div className="space-y-6">
-                                {/* Header with POAP & Info */}
+                                {/* Header with POAP & Info - Horizontal Layout */}
                                 <div className="flex items-center gap-3 p-2.5 rounded-xl border" style={{ 
                                   backgroundColor: 'var(--glass-bg-tertiary)',
                                   borderColor: 'var(--glass-border)'
                                 }}>
-                                  <div className="flex-shrink-0 scale-90 origin-left">
-                                    <POAPBadge email={selectedEmail} size="sm" showVerified={true} className="shadow-md" />
+                                  {/* POAP Badge */}
+                                  <div className="flex-shrink-0">
+                                    <POAPBadge email={selectedEmail} size="sm" showVerified={false} className="shadow-md" />
                                   </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center justify-between gap-2">
-                                      <h3 className="font-bold text-sm truncate" style={{ color: 'var(--page-text-primary)' }}>
-                                        Mint Your Mintmark
-                                      </h3>
-                                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20 whitespace-nowrap">
-                                        Celo
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                      <div className="flex items-center gap-1">
-                                        <Shield className="w-3 h-3 text-green-500" />
-                                        <span className="text-[10px] text-muted-foreground">ZK-Verified</span>
-                                      </div>
-                                    </div>
+                                  
+                                  {/* Title */}
+                                  <h3 className="font-bold text-sm flex-1 truncate" style={{ color: 'var(--page-text-primary)' }}>
+                                    Mint Your Mintmark
+                                  </h3>
+                                  
+                                  {/* Celo Badge */}
+                                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20 whitespace-nowrap flex-shrink-0">
+                                    Celo
+                                  </span>
+                                  
+                                  {/* ZK-Verified Badge */}
+                                  <div className="flex items-center gap-1 flex-shrink-0">
+                                    <Shield className="w-3 h-3 text-green-500" />
+                                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">ZK-Verified</span>
                                   </div>
                                 </div>
 
