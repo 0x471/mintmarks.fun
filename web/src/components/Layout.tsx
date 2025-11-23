@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { VerticalBarsNoise } from './VerticalBarsNoise';
 import { Button } from './ui/button';
-import { Moon, Sun, Sparkles, Bookmark, Mail, LogOut, Wallet, CheckCircle } from 'lucide-react';
+import { Moon, Sun, Sparkles, Bookmark, Mail, LogOut } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../contexts/AuthContext';
 import { useWalletStatus } from '../hooks/useWalletStatus';
@@ -66,39 +66,52 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             </Button>
 
             {isAuthenticated ? (
-              <div className="flex items-center gap-2">
-                {/* Wallet Status */}
-                {hasWallet && !walletLoading && (
-                  <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 text-green-500 rounded-full border border-green-500/20">
-                    <Wallet className="h-3.5 w-3.5" />
-                    <span className="text-xs font-medium">
-                      {evmAddress?.slice(0, 6)}...{evmAddress?.slice(-4)}
-                    </span>
-                    <CheckCircle className="h-3 w-3 ml-0.5" />
-                  </div>
-                )}
-
-                {/* User Profile */}
-                <div className="flex items-center gap-2 pl-2 border-l border-[var(--border)]">
-                  <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-[var(--muted)]/50 border border-[var(--border)]">
-                    <div className="h-5 w-5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white">
-                      {userEmail ? userEmail[0].toUpperCase() : 'U'}
-                    </div>
-                    <span className="hidden sm:inline text-xs font-medium max-w-[120px] truncate">
-                      {userEmail}
-                    </span>
-                  </div>
+              <div className="flex items-center gap-2 pl-2">
+                {/* User Profile & Wallet */}
+                <div className="group relative flex items-center gap-2 px-2 py-1.5 rounded-full bg-[var(--muted)]/50 border border-[var(--border)] hover:bg-[var(--muted)] transition-colors cursor-default min-w-[140px] sm:min-w-[180px]">
                   
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={logout}
-                    className="h-8 w-8 rounded-full hover:bg-red-500/10 hover:text-red-500 transition-colors"
-                    title="Disconnect"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </Button>
+                  {/* Avatar */}
+                  <div className="h-5 w-5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+                    {userEmail ? userEmail[0].toUpperCase() : 'U'}
+                  </div>
+
+                  {/* Content Wrapper */}
+                  <div className="flex-1 relative h-4 overflow-hidden">
+                      {/* Email (Default) */}
+                      <div className={`absolute inset-0 flex items-center transition-transform duration-300 ease-in-out ${hasWallet && !walletLoading ? 'group-hover:-translate-y-full' : ''}`}>
+                          <span className="text-xs font-medium truncate w-full block max-w-[100px] sm:max-w-[140px]">
+                              {userEmail}
+                          </span>
+                      </div>
+
+                      {/* Wallet Address (Hover) */}
+                      {hasWallet && !walletLoading && (
+                          <div className="absolute inset-0 flex items-center translate-y-full transition-transform duration-300 ease-in-out group-hover:translate-y-0">
+                              <span className="text-xs font-mono text-[var(--foreground)]/80 truncate w-full block">
+                                  {evmAddress?.slice(0, 6)}...{evmAddress?.slice(-4)}
+                              </span>
+                          </div>
+                      )}
+                  </div>
+
+                  {/* Wallet Indicator */}
+                  <div className={`h-2 w-2 rounded-[2px] shrink-0 transition-colors ${
+                      hasWallet && !walletLoading 
+                          ? 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]' 
+                          : 'bg-slate-400 dark:bg-slate-600'
+                  }`} title={hasWallet ? 'Wallet Connected' : 'No Wallet'} />
+
                 </div>
+                
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={logout}
+                  className="h-8 w-8 rounded-full hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                  title="Disconnect"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
               </div>
             ) : (
               <Button
