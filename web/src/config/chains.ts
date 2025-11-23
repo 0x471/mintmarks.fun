@@ -112,7 +112,7 @@ export const CONTRACTS = {
   },
   // Celo Sepolia (Testnet) - Chain ID: 11142220
   CELO_SEPOLIA: {
-    USDC: '0x2F25deB3848C207fc8E0c34035B6053542C6CA76', // Celo Sepolia USDC (may need update for fresh state)
+    USDC: '0x2F25deB3848C207fc8E0c34035B6053542C6CA76', // Celo Sepolia USDC (Verify if this is correct for new chain)
     MINT_FEE_RECIPIENT: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
   },
 } as const
@@ -124,4 +124,3 @@ export const getNetworksByType = () => {
   
   return { mainnet, testnet }
 }
-
