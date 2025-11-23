@@ -12,7 +12,7 @@
 
 import { useState } from 'react'
 import React from 'react'
-import { Loader2, CheckCircle2, Circle, Wallet, FileCheck, Coins, Zap, Shield, ChevronDown, Info, ArrowRight } from 'lucide-react'
+import { Loader2, CheckCircle2, Circle, Wallet, FileCheck, Coins, Zap, Shield, ChevronDown, Info, ArrowRight, Mail } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card'
@@ -123,6 +123,8 @@ interface UnifiedMintProgressProps {
   currentStep: UnifiedMintStep
   className?: string
   onConnectWallet?: () => void
+  onConnectCDPWallet?: () => void
+  onConnectExternalWallet?: () => void
   onSignMessage?: () => void
   onPayFee?: () => void
   onChangeWallet?: () => void
@@ -136,17 +138,28 @@ interface UnifiedMintProgressProps {
   onOtpCodeChange?: (code: string) => void
   isSendingOtp?: boolean
   isVerifyingOtp?: boolean
+  hasExternalWallet?: boolean // MetaMask or other external wallet detected
 }
 
 export function UnifiedMintProgress({
   currentStep,
   className,
   onConnectWallet,
+  onConnectCDPWallet,
+  onConnectExternalWallet,
   onSignMessage,
   onPayFee,
   onChangeWallet,
   walletAddress,
   error,
+  showOtpInput,
+  otpEmail,
+  otpCode,
+  onOtpEmailChange,
+  onOtpCodeChange,
+  isSendingOtp,
+  isVerifyingOtp,
+  hasExternalWallet = false,
 }: UnifiedMintProgressProps) {
   const [expandedPhase, setExpandedPhase] = useState<string | null>(null)
   
@@ -250,20 +263,105 @@ export function UnifiedMintProgress({
             {/* Action Buttons */}
             {currentStepDetails.requiresAction && (
               <div className="space-y-3">
-                {currentStepDetails.key === 'wallet-prompt' && onConnectWallet && (
-                  <div className="space-y-2">
+                {currentStepDetails.key === 'wallet-prompt' && (
+                  <div className="space-y-3">
                     <div className="flex items-center gap-1 text-xs" style={{ color: 'var(--page-text-secondary)' }}>
                       <Info className="h-3 w-3" />
                       <span>Will mint on Base network</span>
                     </div>
-                    <Button
-                      onClick={onConnectWallet}
-                      size="lg"
-                      className="gap-2 w-full h-11"
-                    >
-                      <Wallet className="h-4 w-4" />
-                      Connect Wallet
-                    </Button>
+                    
+                    {/* Wallet Selection: CDP or External */}
+                    {!showOtpInput && (
+                      <div className="grid grid-cols-1 gap-2">
+                        {/* CDP Embedded Wallet Option */}
+                        {onConnectCDPWallet && (
+                          <Button
+                            onClick={onConnectCDPWallet}
+                            size="lg"
+                            variant="default"
+                            className="gap-2 w-full h-11"
+                          >
+                            <Mail className="h-4 w-4" />
+                            Connect with Email (CDP)
+                          </Button>
+                        )}
+                        
+                        {/* External Wallet Option (MetaMask) */}
+                        {hasExternalWallet && onConnectExternalWallet && (
+                          <Button
+                            onClick={onConnectExternalWallet}
+                            size="lg"
+                            variant="outline"
+                            className="gap-2 w-full h-11"
+                          >
+                            <Wallet className="h-4 w-4" />
+                            Connect with MetaMask
+                          </Button>
+                        )}
+                        
+                        {/* Fallback: Generic connect wallet */}
+                        {!onConnectCDPWallet && !onConnectExternalWallet && onConnectWallet && (
+                          <Button
+                            onClick={onConnectWallet}
+                            size="lg"
+                            className="gap-2 w-full h-11"
+                          >
+                            <Wallet className="h-4 w-4" />
+                            Connect Wallet
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* OTP Input Section */}
+                    {showOtpInput && (
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium" style={{ color: 'var(--page-text-primary)' }}>
+                            Enter OTP Code
+                          </label>
+                          <input
+                            type="text"
+                            value={otpCode}
+                            onChange={(e) => onOtpCodeChange?.(e.target.value)}
+                            placeholder="123456"
+                            disabled={isVerifyingOtp}
+                            maxLength={6}
+                            className="w-full px-3 py-2 rounded-md border bg-[var(--modal-bg)] border-[var(--figma-card-stroke)] text-center text-lg tracking-widest text-[var(--page-text-primary)]"
+                          />
+                          {otpEmail && (
+                            <p className="text-xs" style={{ color: 'var(--page-text-secondary)' }}>
+                              Check your email ({otpEmail}) for the verification code
+                            </p>
+                          )}
+                        </div>
+                        {onConnectCDPWallet && (
+                          <Button
+                            onClick={onConnectCDPWallet}
+                            size="lg"
+                            disabled={isSendingOtp || isVerifyingOtp || !otpCode}
+                            className="gap-2 w-full h-11"
+                          >
+                            {isSendingOtp ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Sending OTP...
+                              </>
+                            ) : isVerifyingOtp ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Verifying...
+                              </>
+                            ) : (
+                              <>
+                                <Mail className="h-4 w-4" />
+                                Verify OTP
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
                 

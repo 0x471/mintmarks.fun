@@ -39,7 +39,7 @@ export default function CreateMark() {
   const { sendEvmTransaction, data: txData } = useSendEvmTransaction()
   
   // CDP Email OTP state for wallet connection
-  const [otpEmail, setOtpEmail] = useState<string>('')
+  // Note: Email comes from Gmail authentication (userEmail), no need for separate state
   const [otpCode, setOtpCode] = useState<string>('')
   const [flowId, setFlowId] = useState<string | null>(null)
   const [showOtpInput, setShowOtpInput] = useState(false)
@@ -177,6 +177,10 @@ export default function CreateMark() {
   const [unifiedStep, setUnifiedStep] = useState<UnifiedMintStep | null>(null)
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [isUnifiedFlow, setIsUnifiedFlow] = useState(false)
+  const [walletType, setWalletType] = useState<'cdp' | 'external' | null>(null) // Track wallet type
+  
+  // Check for external wallet (MetaMask)
+  const hasExternalWallet = typeof window !== 'undefined' && !!(window as any).ethereum && !(window as any).ethereum.isCoinbaseWallet
 
   // Proof Progress Indicator removed in favor of UnifiedMintProgress
 
@@ -533,9 +537,10 @@ export default function CreateMark() {
       // Check if CDP wallet already connected
       if (evmAddress && currentUser) {
         setWalletAddress(evmAddress)
+        setWalletType('cdp')
         setUnifiedStep('wallet-sign-prompt')
       } else {
-        // Not connected, prompt user to connect with CDP
+        // Not connected, prompt user to connect (CDP or External)
         setUnifiedStep('wallet-prompt')
       }
       
@@ -555,17 +560,17 @@ export default function CreateMark() {
     }
   }
 
-  // Handle wallet connection using CDP Embedded Wallet (EOA)
-  const handleConnectWallet = async () => {
+  // Handle CDP Embedded Wallet connection (Email/OTP flow)
+  const handleConnectCDPWallet = async () => {
     try {
       setError(null)
       
-      // Use Google login email if available, otherwise use user input
-      const emailToUse = userEmail || otpEmail
+      // Use Google login email (from Gmail authentication)
+      const emailToUse = userEmail
       
       if (!emailToUse) {
-        // If no email available, show email input
-        setShowOtpInput(true)
+        // If no email from Gmail auth, show error
+        setError('Please sign in with Gmail first to connect your wallet.')
         setUnifiedStep('wallet-prompt')
         return
       }
@@ -582,6 +587,7 @@ export default function CreateMark() {
           if (user.evmAccounts && user.evmAccounts.length > 0) {
             const address = user.evmAccounts[0]
             setWalletAddress(address)
+            setWalletType('cdp')
             setUnifiedStep('wallet-connected')
             setShowOtpInput(false)
             setOtpCode('')
@@ -610,7 +616,6 @@ export default function CreateMark() {
           
           // Store flowId and show OTP input
           setFlowId(result.flowId)
-          setOtpEmail(emailToUse)
           setShowOtpInput(true)
           setUnifiedStep('wallet-prompt')
           
@@ -628,6 +633,42 @@ export default function CreateMark() {
       console.error('Failed to connect wallet:', err)
       const error = err as Error
       setError(error.message || 'Failed to connect wallet')
+      setUnifiedStep('wallet-prompt')
+    }
+  }
+  
+  // Handle External Wallet connection (MetaMask)
+  const handleConnectExternalWallet = async () => {
+    try {
+      setUnifiedStep('wallet-connecting')
+      setError(null)
+      
+      if (typeof window === 'undefined' || !(window as any).ethereum) {
+        throw new Error('No external wallet found. Please install MetaMask or another wallet extension.')
+      }
+      
+      const accounts = await (window as any).ethereum.request({ 
+        method: 'eth_requestAccounts' 
+      })
+      
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts found. Please unlock your wallet.')
+      }
+      
+      const address = accounts[0]
+      setWalletAddress(address)
+      setWalletType('external')
+      
+      setUnifiedStep('wallet-connected')
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Auto advance to sign prompt
+      setUnifiedStep('wallet-sign-prompt')
+      
+    } catch (err: unknown) {
+      const error = err as Error
+      console.error('Failed to connect external wallet:', error)
+      setError(error.message || 'Failed to connect external wallet')
       setUnifiedStep('wallet-prompt')
     }
   }
@@ -1270,14 +1311,15 @@ export default function CreateMark() {
                                 {/* Unified Progress Component */}
                                 <UnifiedMintProgress
                                   currentStep={unifiedStep}
-                                  onConnectWallet={handleConnectWallet}
+                                  onConnectCDPWallet={handleConnectCDPWallet}
+                                  onConnectExternalWallet={hasExternalWallet ? handleConnectExternalWallet : undefined}
                                   onSignMessage={handleSignMessage}
                                   onPayFee={handlePayFee}
                                   onChangeWallet={() => {
                                     // Reset wallet state to allow user to connect different wallet
                                     setWalletAddress(null)
+                                    setWalletType(null)
                                     setShowOtpInput(false)
-                                    setOtpEmail('')
                                     setOtpCode('')
                                     setFlowId(null)
                                     setUnifiedStep('wallet-prompt')
@@ -1285,12 +1327,12 @@ export default function CreateMark() {
                                   walletAddress={walletAddress || undefined}
                                   error={error}
                                   showOtpInput={showOtpInput}
-                                  otpEmail={otpEmail || userEmail || ''}
+                                  otpEmail={userEmail || ''}
                                   otpCode={otpCode}
-                                  onOtpEmailChange={(email) => setOtpEmail(email)}
                                   onOtpCodeChange={(code) => setOtpCode(code)}
                                   isSendingOtp={isSendingOtp}
                                   isVerifyingOtp={isVerifyingOtp}
+                                  hasExternalWallet={hasExternalWallet}
                                 />
 
                                 {/* Security footer */}
